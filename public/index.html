@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <meta name="theme-color" content="#0F0722" />
-  <title>AA Trivia</title>
+  <title>AAPop Trivia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Inter:wght@400;600;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
   <!-- Pusher client (loaded from CDN — no build step needed) -->
@@ -201,8 +201,8 @@
 // IMPORTANT: Replace PUSHER_KEY_PLACEHOLDER and PUSHER_CLUSTER_PLACEHOLDER
 // with your actual Pusher key and cluster before deploying,
 // OR use the Vercel build process (see README) to inject them automatically.
-const PUSHER_KEY     = "fe68339f5c9e3b19323f";
-const PUSHER_CLUSTER = "us2";
+const PUSHER_KEY     = "PUSHER_KEY_PLACEHOLDER";
+const PUSHER_CLUSTER = "PUSHER_CLUSTER_PLACEHOLDER";
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let mode       = window.location.hash === "#tv" ? "tv" : "phone";
@@ -232,8 +232,9 @@ function handleStateUpdate(state) {
   gs = state;
 
   if (mode === "tv") {
-    if (state.phase === "question" && prev === "lobby") { screen = "game"; }
-    if (state.phase === "final")   { screen = "final"; }
+    if (state.phase === "question" && prev === "lobby")    { screen = "game"; startTicking(); }
+    if (state.phase === "question" && prev === "question") { /* tick already running */ }
+    if (state.phase === "final")   { screen = "final"; stopTicking(); }
     render();
     return;
   }
@@ -254,6 +255,34 @@ async function api(path, body) {
     body: JSON.stringify(body),
   });
   return res.json();
+}
+
+// ─── BROWSER TIMER (TV only) ──────────────────────────────────────────────────
+// The TV drives the countdown by calling /api/tick every second.
+// This avoids Vercel killing server-side setTimeout on function return.
+let tickInterval  = null;
+let revealTimeout = null;
+
+function startTicking() {
+  stopTicking();
+  tickInterval = setInterval(async () => {
+    if (!roomCode || mode !== "tv") return;
+    const data = await api("tick", { code: roomCode });
+    if (data.phase === "reveal") {
+      stopTicking();
+      // After 5s reveal window, advance to next question
+      revealTimeout = setTimeout(async () => {
+        await api("next", { code: roomCode });
+      }, 5000);
+    }
+  }, 1000);
+}
+
+function stopTicking() {
+  clearInterval(tickInterval);
+  clearTimeout(revealTimeout);
+  tickInterval  = null;
+  revealTimeout = null;
 }
 
 // ─── ACTIONS ─────────────────────────────────────────────────────────────────
@@ -280,6 +309,7 @@ async function joinRoom(code, name) {
 
 async function startGame() {
   await api("start", { code: roomCode });
+  startTicking();
 }
 
 async function submitAnswer(idx) {
@@ -291,6 +321,7 @@ async function submitAnswer(idx) {
 }
 
 async function rematch() {
+  stopTicking();
   const data = await api("rematch", { code: roomCode });
   gs = data.state;
   prevPhase = "lobby";
