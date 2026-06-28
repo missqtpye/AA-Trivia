@@ -232,6 +232,7 @@ function handleStateUpdate(state) {
   gs = state;
 
   if (mode === "tv") {
+    if (state.phase === "lobby")                           { screen = "lobby"; }
     if (state.phase === "question" && prev === "lobby")    { screen = "game"; startTicking(); }
     if (state.phase === "question" && prev === "question") { /* tick already running */ }
     if (state.phase === "final")   { screen = "final"; stopTicking(); }
@@ -410,11 +411,6 @@ function tvLobby() {
       : `<div class="player-card empty"><div class="pc-emoji">+</div><div class="pc-name">Waiting...</div></div>`;
   }).join("");
 
-  setTimeout(() => {
-    const btn = document.getElementById("startBtn");
-    if (btn) btn.onclick = () => startGame();
-  }, 0);
-
   return `
   <div class="tv-lobby col center g28">
     <div class="tc">
@@ -424,7 +420,7 @@ function tvLobby() {
     <div class="players-grid mw860">${slots}</div>
     <div class="row">
       <div class="info">${players.length} player${players.length!==1?"s":""} joined</div>
-      <button class="btn btn-gold btn-xl" id="startBtn" ${players.length===0?"disabled":""}>🔥 Start Game (${gs?.questions?.length||10} Qs)</button>
+      <button class="btn btn-gold btn-xl" onclick="startGame()" ${players.length===0?"disabled":""}>🔥 Start Game (${gs?.questions?.length||10} Qs)</button>
     </div>
   </div>`;
 }
@@ -490,26 +486,19 @@ function tvFinal() {
     <div class="fr-pts">${gs.scores[p.id]||0} pts</div>
   </div>`).join("");
 
-  setTimeout(() => {
-    const pa = document.getElementById("playAgainBtn");
-    const hm = document.getElementById("homeBtn");
-    if (pa) pa.onclick = () => rematch();
-    if (hm) hm.onclick = () => { screen="home"; gs=null; roomCode=null; prevPhase=null; render(); };
-  }, 0);
-
   return `
   <div class="tv-final col center g28">
     <div class="display gold" style="font-size:clamp(36px,6vw,64px)">Game Over! 🏆</div>
     ${podium}
     <div class="final-list">${rows}</div>
     <div class="row g16">
-      <button class="btn btn-gold btn-xl" id="playAgainBtn">🔄 Play Again</button>
-      <button class="btn btn-outline" id="homeBtn">🏠 Home</button>
+      <button class="btn btn-gold btn-xl" onclick="rematch()">🔄 Play Again</button>
+      <button class="btn btn-outline" onclick="tvReset()">🏠 Home</button>
     </div>
   </div>`;
 }
 
-function attachTVFinal() {} // handlers set in tvFinal() via setTimeout
+function attachTVFinal() {}
 
 // ── PHONE SCREENS ─────────────────────────────────────────────────────────────
 function renderPhone() {
@@ -631,21 +620,29 @@ function phoneFinal() {
     <div class="ph-fr-pts">${gs.scores[p.id]||0}</div>
   </div>`).join("");
 
-  setTimeout(()=>{
-    const h = document.getElementById("phHomeBtn");
-    if (h) h.onclick = ()=>{ screen="home"; gs=null; myId=null; myPlayer=null; myAnswer=null; roomCode=null; prevPhase=null; render(); };
-  },0);
-
   return `
   <div class="ph-final col center g16">
     <div style="font-size:56px">🏆</div>
     <div class="display gold" style="font-size:32px">Game Over!</div>
     <div class="ph-final-list">${rows}</div>
-    <button class="btn btn-outline" id="phHomeBtn" style="margin-top:8px">🏠 Home</button>
+    <button class="btn btn-outline" onclick="phoneReset()" style="margin-top:8px">🏠 Home</button>
   </div>`;
 }
 
 function attachPhoneFinal() {} // handler in phoneFinal()
+
+// ─── RESET HELPERS ────────────────────────────────────────────────────────────
+function tvReset() {
+  stopTicking();
+  screen = "home"; gs = null; roomCode = null; prevPhase = null;
+  render();
+}
+
+function phoneReset() {
+  screen = "home"; gs = null; myId = null; myPlayer = null;
+  myAnswer = null; roomCode = null; prevPhase = null;
+  render();
+}
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 modeBtn.onclick = () => {
