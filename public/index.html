@@ -355,7 +355,13 @@ async function joinRoom(code, name) {
 
 async function startGame() {
   stopLobbyPoll();
-  await api("start", { code: roomCode });
+  const data = await api("start", { code: roomCode });
+  console.log("[startGame] response:", JSON.stringify(data));
+  if (data.error) {
+    alert("Could not start: " + data.error);
+    startLobbyPoll(); // go back to polling if it failed
+    return;
+  }
   startTicking();
 }
 
