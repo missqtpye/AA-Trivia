@@ -22,7 +22,7 @@ module.exports = async (req, res) => {
     createdAt: Date.now(),
   };
 
-  setRoom(code, state);
+  await setRoom(code, state);
   await broadcast(code, state);
 
   res.status(200).json({ code, state });
