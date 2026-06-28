@@ -216,14 +216,58 @@ let pusherSub  = null;
 let prevPhase  = null;
 
 // ─── PUSHER ───────────────────────────────────────────────────────────────────
-const pusherClient = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
+const pusherClient = new Pusher(PUSHER_KEY, {
+  cluster: PUSHER_CLUSTER,
+  enabledTransports: ["ws", "wss"],
+});
+
+// Log Pusher connection state changes for debugging
+pusherClient.connection.bind("state_change", ({ previous, current }) => {
+  console.log(`[Pusher] connection: ${previous} → ${current}`);
+});
+pusherClient.connection.bind("error", (err) => {
+  console.error("[Pusher] connection error:", err);
+});
 
 function subscribeToRoom(code) {
-  if (pusherSub) pusherSub.unbind_all();
+  if (pusherSub) { pusherSub.unbind_all(); pusherClient.unsubscribe(`room-${code}`); }
   pusherSub = pusherClient.subscribe(`room-${code}`);
+  pusherSub.bind("pusher:subscription_succeeded", () => {
+    console.log(`[Pusher] subscribed to room-${code}`);
+  });
+  pusherSub.bind("pusher:subscription_error", (err) => {
+    console.error(`[Pusher] subscription error:`, err);
+  });
   pusherSub.bind("state", ({ state }) => {
+    console.log(`[Pusher] received state update, phase=${state.phase}, players=${state.players.length}`);
     handleStateUpdate(state);
   });
+}
+
+// ─── TV LOBBY POLL FALLBACK ───────────────────────────────────────────────────
+// Pusher can occasionally miss events. Poll Redis directly every 3s
+// while in the lobby so the TV always sees new players.
+let lobbyPoll = null;
+
+function startLobbyPoll() {
+  stopLobbyPoll();
+  lobbyPoll = setInterval(async () => {
+    if (screen !== "lobby" || mode !== "tv" || !roomCode) { stopLobbyPoll(); return; }
+    try {
+      const res = await fetch(`/api/room?code=${roomCode}`);
+      const data = await res.json();
+      if (data.state) {
+        console.log(`[Poll] lobby state: ${data.state.players.length} players`);
+        gs = data.state;
+        render();
+      }
+    } catch (e) { console.warn("[Poll] lobby poll error", e); }
+  }, 3000);
+}
+
+function stopLobbyPoll() {
+  clearInterval(lobbyPoll);
+  lobbyPoll = null;
 }
 
 function handleStateUpdate(state) {
@@ -293,6 +337,7 @@ async function createRoom(numQ, timePerQ) {
   gs = data.state;
   subscribeToRoom(roomCode);
   screen = "lobby";
+  startLobbyPoll();
   render();
 }
 
@@ -309,6 +354,7 @@ async function joinRoom(code, name) {
 }
 
 async function startGame() {
+  stopLobbyPoll();
   await api("start", { code: roomCode });
   startTicking();
 }
@@ -327,6 +373,7 @@ async function rematch() {
   gs = data.state;
   prevPhase = "lobby";
   screen = "lobby";
+  startLobbyPoll();
   render();
 }
 
@@ -634,6 +681,7 @@ function attachPhoneFinal() {} // handler in phoneFinal()
 // ─── RESET HELPERS ────────────────────────────────────────────────────────────
 function tvReset() {
   stopTicking();
+  stopLobbyPoll();
   screen = "home"; gs = null; roomCode = null; prevPhase = null;
   render();
 }
