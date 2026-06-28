@@ -1,0 +1,53 @@
+/**
+ * /api/tick — called by the TV browser every second.
+ * Decrements timeLeft. If it hits 0, triggers reveal.
+ * Also handles early reveal when all players have answered.
+ */
+const { getRoom, setRoom } = require("../lib/store");
+const { broadcast } = require("../lib/pusher");
+
+async function reveal(code, room) {
+  const q       = room.questions[room.currentQ];
+  const correct = q.a;
+  room.correctAnswerers = [];
+
+  Object.entries(room.answers).forEach(([pid, ans]) => {
+    if (ans === correct) {
+      const speedBonus = Math.floor((room.timeLeft / room.timePerQ) * 50);
+      room.scores[pid] = (room.scores[pid] || 0) + q.pts + speedBonus;
+      room.correctAnswerers.push(pid);
+    }
+  });
+
+  room.phase = "reveal";
+  await setRoom(code, room);
+  await broadcast(code, room);
+}
+
+module.exports = async (req, res) => {
+  if (req.method !== "POST") return res.status(405).end();
+
+  const { code } = req.body || {};
+  const ucode = code?.toUpperCase();
+  const room  = await getRoom(ucode);
+
+  if (!room || room.phase !== "question")
+    return res.status(200).json({ ok: true, phase: room?.phase });
+
+  // Check if all players already answered — reveal early
+  const allAnswered = room.players.length > 0 &&
+    Object.keys(room.answers).length >= room.players.length;
+
+  if (allAnswered || room.timeLeft <= 1) {
+    await reveal(ucode, room);
+    return res.status(200).json({ ok: true, phase: "reveal" });
+  }
+
+  room.timeLeft--;
+  await setRoom(ucode, room);
+  await broadcast(ucode, room);
+
+  res.status(200).json({ ok: true, phase: "question", timeLeft: room.timeLeft });
+};
+
+module.exports.reveal = reveal;
