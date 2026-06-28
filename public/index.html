@@ -7,7 +7,7 @@
   <title>AAPop Trivia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Inter:wght@400;600;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
-  <!-- Pusher client (loaded from CDN — no build step needed) -->
+  <!-- Pusher must load before app script -->
   <script src="https://js.pusher.com/8.4/pusher.min.js"></script>
 
   <style>
@@ -197,6 +197,7 @@
 </div>
 
 <script>
+document.addEventListener("DOMContentLoaded", function() {
 // ─── CONFIG — Pusher key injected from env at deploy time ─────────────────────
 // IMPORTANT: Replace PUSHER_KEY_PLACEHOLDER and PUSHER_CLUSTER_PLACEHOLDER
 // with your actual Pusher key and cluster before deploying,
@@ -354,16 +355,30 @@ async function joinRoom(code, name) {
 }
 
 async function startGame() {
-  stopLobbyPoll();
-  const data = await api("start", { code: roomCode });
-  console.log("[startGame] response:", JSON.stringify(data));
-  if (data.error) {
-    alert("Could not start: " + data.error);
-    startLobbyPoll(); // go back to polling if it failed
-    return;
+  console.log("[startGame] called, roomCode=", roomCode, "players=", gs?.players?.length);
+  try {
+    stopLobbyPoll();
+    const res = await fetch("/api/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: roomCode }),
+    });
+    const text = await res.text();
+    console.log("[startGame] raw response:", res.status, text);
+    const data = JSON.parse(text);
+    if (data.error) {
+      alert("Start error: " + data.error);
+      startLobbyPoll();
+      return;
+    }
+    console.log("[startGame] success, starting ticker");
+    startTicking();
+  } catch (e) {
+    console.error("[startGame] exception:", e);
+    alert("Start failed: " + e.message);
   }
-  startTicking();
 }
+window.startGame = startGame;
 
 async function submitAnswer(idx) {
   if (myAnswer !== null) return;
@@ -698,6 +713,12 @@ function phoneReset() {
   render();
 }
 
+// Expose all functions used in inline onclick handlers to window scope
+window.startGame  = startGame;
+window.rematch    = rematch;
+window.tvReset    = tvReset;
+window.phoneReset = phoneReset;
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 modeBtn.onclick = () => {
   mode = mode === "tv" ? "phone" : "tv";
@@ -713,6 +734,7 @@ window.addEventListener("hashchange", () => {
 });
 
 render();
+}); // end DOMContentLoaded
 </script>
 </body>
 </html>
