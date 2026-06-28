@@ -6,10 +6,11 @@ module.exports = async (req, res) => {
   if (req.method !== "POST") return res.status(405).end();
 
   const { code } = req.body || {};
-  const room = await getRoom(code?.toUpperCase());
+  const ucode = code?.toUpperCase();
+  const room  = await getRoom(ucode);
   if (!room) return res.status(404).json({ error: "Room not found" });
 
-  clearTimer(code);
+  clearTimer(ucode);
   room.phase            = "lobby";
   room.currentQ         = 0;
   room.answers          = {};
@@ -19,8 +20,8 @@ module.exports = async (req, res) => {
   room.scores           = {};
   room.players.forEach(p => { room.scores[p.id] = 0; });
 
-  await setRoom(code, room);
-  await broadcast(code, room);
+  await setRoom(ucode, room);
+  await broadcast(ucode, room);
 
   res.status(200).json({ ok: true, state: room });
 };
