@@ -255,9 +255,21 @@ function handleState(state) {
   prevPhase = state.phase;
   gs = state;
   if (mode === "tv") {
-    if (state.phase === "lobby")                         { screen = "lobby"; }
-    if (state.phase === "question" && prev === "lobby")  { screen = "game"; startTick(); }
-    if (state.phase === "final")                         { screen = "final"; stopTick(); }
+    if (state.phase === "lobby") {
+      screen = "lobby";
+      stopTick();
+    }
+    if (state.phase === "question" && prev !== "question") {
+      screen = "game";
+      startTick();
+    }
+    if (state.phase === "reveal") {
+      screen = "game";
+    }
+    if (state.phase === "final") {
+      screen = "final";
+      stopTick();
+    }
   } else {
     if (state.phase === "question" && prev !== "question") { myAnswer = null; screen = "game"; }
     if (state.phase === "reveal"   && prev !== "reveal")   { screen = "reveal"; }
