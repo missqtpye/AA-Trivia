@@ -3,753 +3,633 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <meta name="theme-color" content="#0F0722" />
   <title>AAPop Trivia</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Inter:wght@400;600;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
-  <!-- Pusher must load before app script -->
-  <script src="https://js.pusher.com/8.4/pusher.min.js"></script>
-
+  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Inter:wght@400;600;700;900&family=Space+Mono:wght@700&display=swap" rel="stylesheet" />
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg:     #0F0722; --bg2: #1E0E42; --card: #2A1660;
-      --gold:   #FFD700; --gold-dim: rgba(255,215,0,0.2);
-      --teal:   #06D6A0; --red: #E63946; --sky: #4CC9F0;
-      --white:  #F2EEFF; --muted: #8B75C0;
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#0F0722;--bg2:#1E0E42;--card:#2A1660;
+      --gold:#FFD700;--gdim:rgba(255,215,0,0.2);
+      --teal:#06D6A0;--red:#E63946;--sky:#4CC9F0;
+      --white:#F2EEFF;--muted:#8B75C0;
     }
-    body { background:var(--bg); color:var(--white); font-family:'Inter',sans-serif; min-height:100vh; overscroll-behavior:none; }
-    #app  { min-height:100vh; display:flex; flex-direction:column; }
+    body{background:var(--bg);color:var(--white);font-family:'Inter',sans-serif;min-height:100vh;overscroll-behavior:none}
+    #app{min-height:100vh;display:flex;flex-direction:column}
 
-    /* ── Header ── */
-    .hdr { background:linear-gradient(180deg,var(--bg2) 0%,transparent 100%); padding:14px 24px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--gold-dim); flex-shrink:0; }
-    .logo { font-family:'Black Han Sans',sans-serif; font-size:clamp(18px,3vw,26px); color:var(--gold); letter-spacing:1px; display:flex; align-items:center; gap:10px; }
-    .logo span { color:var(--white); opacity:.6; }
-    .vinyl { width:36px; height:36px; border-radius:50%; flex-shrink:0; background:conic-gradient(#1a1a1a 0deg 30deg,#333 30deg 60deg,#1a1a1a 60deg 90deg,#333 90deg 120deg,#1a1a1a 120deg 150deg,#333 150deg 180deg,#1a1a1a 180deg 210deg,#333 210deg 240deg,#1a1a1a 240deg 270deg,#333 270deg 300deg,#1a1a1a 300deg 330deg,#333 330deg 360deg); border:3px solid var(--gold); animation:spin 3s linear infinite; position:relative; }
-    .vinyl::after { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:10px; height:10px; border-radius:50%; background:var(--gold); }
-    @keyframes spin { to { transform:rotate(360deg); } }
-    .mode-btn { background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.15); color:var(--white); border-radius:20px; padding:6px 14px; font-size:13px; font-weight:600; cursor:pointer; }
+    /* header */
+    .hdr{background:linear-gradient(180deg,var(--bg2),transparent);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--gdim);flex-shrink:0}
+    .logo{font-family:'Black Han Sans',sans-serif;font-size:clamp(18px,3vw,24px);color:var(--gold);display:flex;align-items:center;gap:10px}
+    .logo span{color:var(--white);opacity:.6}
+    .vinyl{width:34px;height:34px;border-radius:50%;background:conic-gradient(#1a1a1a 0deg 30deg,#333 30deg 60deg,#1a1a1a 60deg 90deg,#333 90deg 120deg,#1a1a1a 120deg 150deg,#333 150deg 180deg,#1a1a1a 180deg 210deg,#333 210deg 240deg,#1a1a1a 240deg 270deg,#333 270deg 300deg,#1a1a1a 300deg 330deg,#333 330deg 360deg);border:3px solid var(--gold);animation:spin 3s linear infinite;position:relative;flex-shrink:0}
+    .vinyl::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:9px;height:9px;border-radius:50%;background:var(--gold)}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    #modeBtn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:var(--white);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer}
 
-    /* ── Buttons ── */
-    .btn { font-family:'Black Han Sans',sans-serif; font-size:18px; letter-spacing:1px; border:none; border-radius:14px; padding:14px 24px; cursor:pointer; transition:all .15s; display:inline-flex; align-items:center; justify-content:center; gap:8px; line-height:1; }
-    .btn:active { transform:scale(.96); }
-    .btn:disabled { opacity:.45; cursor:not-allowed; }
-    .btn-gold    { background:linear-gradient(135deg,#FFD700,#FF9500); color:#0F0722; box-shadow:0 4px 24px rgba(255,215,0,.3); }
-    .btn-outline { background:transparent; border:2px solid var(--gold); color:var(--gold); }
-    .btn-ghost   { background:rgba(255,255,255,.06); color:var(--white); border:1px solid rgba(255,255,255,.12); }
-    .btn-sm  { font-size:14px; padding:10px 18px; border-radius:10px; }
-    .btn-full{ width:100%; }
-    .btn-xl  { font-size:24px; padding:20px 36px; border-radius:18px; }
+    /* buttons */
+    .btn{font-family:'Black Han Sans',sans-serif;font-size:17px;letter-spacing:1px;border:none;border-radius:13px;padding:13px 22px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:8px;line-height:1}
+    .btn:active{transform:scale(.96)}
+    .btn:disabled{opacity:.4;cursor:not-allowed}
+    .btn-gold{background:linear-gradient(135deg,#FFD700,#FF9500);color:#0F0722;box-shadow:0 4px 20px rgba(255,215,0,.25)}
+    .btn-outline{background:transparent;border:2px solid var(--gold);color:var(--gold)}
+    .btn-ghost{background:rgba(255,255,255,.06);color:var(--white);border:1px solid rgba(255,255,255,.12)}
+    .btn-full{width:100%}
+    .btn-xl{font-size:22px;padding:18px 32px;border-radius:16px}
 
-    /* ── Inputs ── */
-    .inp { background:var(--bg2); border:2px solid var(--gold-dim); border-radius:12px; color:var(--white); font-size:16px; padding:12px 16px; font-family:'Inter',sans-serif; font-weight:600; outline:none; width:100%; transition:border-color .2s; }
-    .inp:focus { border-color:var(--gold); }
-    .inp::placeholder { color:var(--muted); font-weight:400; }
-    .inp-code { font-family:'Space Mono',monospace; font-size:32px; font-weight:700; letter-spacing:10px; text-align:center; text-transform:uppercase; padding:16px; background:var(--bg); }
-    .select { background:var(--bg2); border:2px solid var(--gold-dim); border-radius:12px; color:var(--white); font-size:15px; padding:10px 14px; outline:none; width:100%; font-family:'Inter',sans-serif; font-weight:600; }
+    /* inputs */
+    .inp{background:var(--bg2);border:2px solid var(--gdim);border-radius:12px;color:var(--white);font-size:16px;padding:12px 15px;font-family:'Inter',sans-serif;font-weight:600;outline:none;width:100%;transition:border-color .2s}
+    .inp:focus{border-color:var(--gold)}
+    .inp::placeholder{color:var(--muted);font-weight:400}
+    .inp-code{font-family:'Space Mono',monospace;font-size:30px;font-weight:700;letter-spacing:10px;text-align:center;text-transform:uppercase;padding:14px;background:var(--bg)}
+    .select{background:var(--bg2);border:2px solid var(--gdim);border-radius:12px;color:var(--white);font-size:15px;padding:10px 13px;outline:none;width:100%;font-family:'Inter',sans-serif;font-weight:600}
 
-    /* ── Cards ── */
-    .card { background:var(--card); border:1.5px solid var(--gold-dim); border-radius:20px; padding:28px; }
-    .card-title { font-family:'Black Han Sans',sans-serif; font-size:22px; color:var(--gold); margin-bottom:16px; }
+    /* card */
+    .card{background:var(--card);border:1.5px solid var(--gdim);border-radius:20px;padding:26px}
+    .card-title{font-family:'Black Han Sans',sans-serif;font-size:21px;color:var(--gold);margin-bottom:14px}
 
-    /* ── Layout ── */
-    .col   { display:flex; flex-direction:column; }
-    .row   { display:flex; gap:12px; align-items:center; }
-    .center{ align-items:center; justify-content:center; }
-    .tc    { text-align:center; }
-    .flex1 { flex:1; }
-    .w100  { width:100%; }
-    .mw460 { max-width:460px; width:100%; }
-    .mw860 { max-width:860px; width:100%; }
-    .g4{gap:4px} .g8{gap:8px} .g12{gap:12px} .g16{gap:16px} .g20{gap:20px} .g24{gap:24px} .g32{gap:32px}
-    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    /* layout */
+    .col{display:flex;flex-direction:column}
+    .row{display:flex;gap:12px;align-items:center}
+    .center{align-items:center;justify-content:center}
+    .tc{text-align:center}
+    .flex1{flex:1}
+    .mw460{max-width:460px;width:100%}
+    .mw860{max-width:860px;width:100%}
+    .g4{gap:4px}.g8{gap:8px}.g12{gap:12px}.g16{gap:16px}.g20{gap:20px}.g24{gap:24px}.g32{gap:32px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 
-    /* ── Type ── */
-    .hero { font-family:'Black Han Sans',sans-serif; font-size:clamp(36px,8vw,80px); line-height:1.05; background:linear-gradient(135deg,#FFD700 0%,#FF9500 50%,#FFD700 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; background-size:200%; animation:shimmer 4s ease-in-out infinite; }
-    @keyframes shimmer { 0%,100%{background-position:0%} 50%{background-position:100%} }
-    .display { font-family:'Black Han Sans',sans-serif; }
-    .mono    { font-family:'Space Mono',monospace; }
-    .gold    { color:var(--gold); }
-    .muted   { color:var(--muted); }
-    .red-c   { color:var(--red); }
-    .teal-c  { color:var(--teal); }
-    .label   { color:var(--muted); font-size:12px; font-weight:700; letter-spacing:1px; }
-    .info    { color:var(--muted); font-size:14px; line-height:1.6; }
-    .tagline { color:var(--muted); font-size:clamp(12px,2vw,15px); font-weight:600; letter-spacing:3px; text-transform:uppercase; margin-top:8px; }
-    .divider { color:var(--muted); font-size:12px; font-weight:700; letter-spacing:3px; }
+    /* type */
+    .hero{font-family:'Black Han Sans',sans-serif;font-size:clamp(34px,7vw,72px);line-height:1.05;background:linear-gradient(135deg,#FFD700,#FF9500,#FFD700);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;background-size:200%;animation:shimmer 4s ease-in-out infinite}
+    @keyframes shimmer{0%,100%{background-position:0%}50%{background-position:100%}}
+    .disp{font-family:'Black Han Sans',sans-serif}
+    .mono{font-family:'Space Mono',monospace}
+    .gold{color:var(--gold)}
+    .muted{color:var(--muted)}
+    .label{color:var(--muted);font-size:12px;font-weight:700;letter-spacing:1px}
+    .info{color:var(--muted);font-size:14px;line-height:1.6}
+    .tagline{color:var(--muted);font-size:clamp(11px,2vw,14px);font-weight:600;letter-spacing:3px;text-transform:uppercase;margin-top:8px}
+    .err{color:var(--red);font-size:14px;font-weight:700;min-height:18px}
 
-    /* ── TV: Lobby ── */
-    .tv-lobby { flex:1; padding:40px 32px; }
-    .code-label { color:var(--muted); font-size:13px; font-weight:700; letter-spacing:4px; text-transform:uppercase; margin-bottom:12px; }
-    .big-code { font-family:'Space Mono',monospace; font-size:clamp(52px,9vw,96px); font-weight:700; color:var(--gold); letter-spacing:18px; border:4px solid var(--gold); border-radius:24px; padding:20px 48px; display:inline-block; animation:glow 2s ease-in-out infinite; }
-    @keyframes glow { 0%,100%{box-shadow:0 0 30px rgba(255,215,0,.15)} 50%{box-shadow:0 0 60px rgba(255,215,0,.45)} }
-    .players-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
-    .player-card { background:var(--card); border:2px solid rgba(255,215,0,.12); border-radius:18px; padding:20px 12px; display:flex; flex-direction:column; align-items:center; gap:8px; transition:all .4s; }
-    .player-card.filled { border-color:rgba(255,215,0,.45); box-shadow:0 0 20px rgba(255,215,0,.08); }
-    .player-card.empty  { opacity:.3; border-style:dashed; }
-    .pc-emoji { font-size:clamp(28px,4vw,42px); }
-    .pc-name  { font-weight:700; font-size:clamp(13px,1.5vw,17px); text-align:center; }
-    .pc-score { font-family:'Space Mono',monospace; color:var(--gold); font-size:clamp(14px,2vw,20px); font-weight:700; }
+    /* loading */
+    #loading{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;font-size:18px;font-weight:700;color:var(--muted)}
 
-    /* ── TV: Game ── */
-    .tv-game { flex:1; display:grid; grid-template-rows:auto 6px 1fr auto auto; overflow:hidden; }
-    .tv-topbar { background:var(--bg2); padding:12px 28px; display:flex; align-items:center; gap:16px; border-bottom:1px solid var(--gold-dim); }
-    .round-badge { background:var(--gold); color:#0F0722; font-family:'Black Han Sans',sans-serif; font-size:15px; padding:5px 18px; border-radius:20px; flex-shrink:0; }
-    .tv-cat  { flex:1; text-align:center; font-size:15px; font-weight:700; opacity:.8; }
-    .tv-timer { font-family:'Space Mono',monospace; font-size:clamp(28px,4vw,44px); font-weight:700; color:var(--gold); min-width:52px; text-align:right; transition:color .3s; }
-    .tv-timer.urgent { color:var(--red); animation:blink .5s step-end infinite; }
-    @keyframes blink { 50%{opacity:0} }
-    .prog-bar  { background:rgba(255,255,255,.08); }
-    .prog-fill { height:100%; background:linear-gradient(90deg,var(--gold),#FF9500); transition:width .8s linear; }
-    .tv-qbody  { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:28px 40px 12px; gap:14px; }
-    .pts-badge { background:var(--gold-dim); border:1px solid var(--gold-dim); color:var(--gold); font-family:'Space Mono',monospace; font-size:13px; padding:4px 16px; border-radius:20px; }
-    .tv-question { font-family:'Black Han Sans',sans-serif; font-size:clamp(22px,4vw,44px); line-height:1.3; text-align:center; max-width:960px; }
-    .tv-choices { display:grid; grid-template-columns:1fr 1fr; gap:14px; padding:0 40px 16px; }
-    .tv-choice { background:var(--card); border:3px solid transparent; border-radius:16px; padding:20px 24px; font-size:clamp(16px,2.2vw,24px); font-weight:700; display:flex; align-items:center; gap:14px; min-height:80px; transition:all .3s; }
-    .tv-choice-lbl { background:rgba(255,255,255,.1); border-radius:8px; width:38px; height:38px; display:flex; align-items:center; justify-content:center; font-family:'Space Mono',monospace; font-size:16px; font-weight:700; flex-shrink:0; }
-    .tv-choice.correct { border-color:var(--teal); background:rgba(6,214,160,.15); animation:pop .4s ease; }
-    .tv-choice.wrong   { border-color:var(--red); opacity:.4; }
-    @keyframes pop { 0%{transform:scale(1)} 50%{transform:scale(1.03)} 100%{transform:scale(1)} }
-    .tv-scores-bar { background:var(--bg2); border-top:1px solid var(--gold-dim); padding:12px 28px; display:flex; gap:12px; align-items:center; overflow-x:auto; scrollbar-width:none; flex-shrink:0; }
-    .tv-scores-bar::-webkit-scrollbar{display:none}
-    .tv-chip { display:flex; align-items:center; gap:8px; background:var(--bg); border-radius:12px; padding:8px 16px; flex-shrink:0; border:2px solid transparent; transition:all .3s; }
-    .tv-chip.buzzed { border-color:var(--teal); box-shadow:0 0 12px rgba(6,214,160,.3); }
-    .tv-chip.scored { border-color:var(--gold); }
-    .tc-emoji{font-size:20px} .tc-name{font-size:13px;font-weight:700} .tc-pts{font-family:'Space Mono',monospace;font-size:15px;color:var(--gold);font-weight:700}
-    .ans-count { margin-left:auto; color:var(--muted); font-size:13px; font-weight:700; flex-shrink:0; }
+    /* TV lobby */
+    .tv-lobby{flex:1;padding:32px 24px}
+    .code-label{color:var(--muted);font-size:12px;font-weight:700;letter-spacing:4px;text-transform:uppercase;margin-bottom:10px}
+    .big-code{font-family:'Space Mono',monospace;font-size:clamp(48px,8vw,88px);font-weight:700;color:var(--gold);letter-spacing:16px;border:4px solid var(--gold);border-radius:22px;padding:18px 42px;display:inline-block;animation:glow 2s ease-in-out infinite}
+    @keyframes glow{0%,100%{box-shadow:0 0 24px rgba(255,215,0,.15)}50%{box-shadow:0 0 50px rgba(255,215,0,.4)}}
+    .players-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .pc{background:var(--card);border:2px solid rgba(255,215,0,.12);border-radius:16px;padding:18px 10px;display:flex;flex-direction:column;align-items:center;gap:7px;transition:all .4s}
+    .pc.filled{border-color:rgba(255,215,0,.45);box-shadow:0 0 16px rgba(255,215,0,.08)}
+    .pc.empty{opacity:.3;border-style:dashed}
+    .pc-emoji{font-size:clamp(26px,3.5vw,38px)}
+    .pc-name{font-weight:700;font-size:clamp(12px,1.4vw,16px);text-align:center}
+    .pc-score{font-family:'Space Mono',monospace;color:var(--gold);font-size:clamp(13px,1.8vw,18px);font-weight:700}
 
-    /* ── Reveal overlay ── */
-    .reveal-overlay { position:fixed; inset:0; background:rgba(15,7,34,.96); z-index:50; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; padding:40px; animation:fadeIn .4s ease; }
+    /* TV game */
+    .tv-game{flex:1;display:grid;grid-template-rows:auto 6px 1fr auto auto;overflow:hidden}
+    .tv-top{background:var(--bg2);padding:10px 24px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--gdim)}
+    .round-badge{background:var(--gold);color:#0F0722;font-family:'Black Han Sans',sans-serif;font-size:14px;padding:4px 16px;border-radius:20px;flex-shrink:0}
+    .tv-cat{flex:1;text-align:center;font-size:14px;font-weight:700;opacity:.8}
+    .tv-timer{font-family:'Space Mono',monospace;font-size:clamp(26px,4vw,42px);font-weight:700;color:var(--gold);min-width:48px;text-align:right;transition:color .3s}
+    .tv-timer.urgent{color:var(--red);animation:blink .5s step-end infinite}
+    @keyframes blink{50%{opacity:0}}
+    .prog{background:rgba(255,255,255,.08)}
+    .prog-fill{height:100%;background:linear-gradient(90deg,var(--gold),#FF9500);transition:width .8s linear}
+    .tv-qbody{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 36px 10px;gap:12px}
+    .pts-badge{background:var(--gdim);border:1px solid var(--gdim);color:var(--gold);font-family:'Space Mono',monospace;font-size:12px;padding:3px 14px;border-radius:20px}
+    .tv-q{font-family:'Black Han Sans',sans-serif;font-size:clamp(20px,3.5vw,42px);line-height:1.3;text-align:center;max-width:920px}
+    .tv-choices{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 36px 14px}
+    .tv-choice{background:var(--card);border:3px solid transparent;border-radius:14px;padding:18px 20px;font-size:clamp(15px,2vw,22px);font-weight:700;display:flex;align-items:center;gap:12px;min-height:72px;transition:all .3s}
+    .tv-choice-lbl{background:rgba(255,255,255,.1);border-radius:7px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-size:14px;font-weight:700;flex-shrink:0}
+    .tv-choice.correct{border-color:var(--teal);background:rgba(6,214,160,.15);animation:pop .4s ease}
+    .tv-choice.wrong{border-color:var(--red);opacity:.4}
+    @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.03)}100%{transform:scale(1)}}
+    .tv-scores{background:var(--bg2);border-top:1px solid var(--gdim);padding:10px 24px;display:flex;gap:10px;align-items:center;overflow-x:auto;scrollbar-width:none;flex-shrink:0}
+    .tv-scores::-webkit-scrollbar{display:none}
+    .tv-chip{display:flex;align-items:center;gap:7px;background:var(--bg);border-radius:10px;padding:7px 14px;flex-shrink:0;border:2px solid transparent;transition:all .3s}
+    .tv-chip.buzzed{border-color:var(--teal);box-shadow:0 0 10px rgba(6,214,160,.25)}
+    .tv-chip.scored{border-color:var(--gold)}
+    .tc-pts{font-family:'Space Mono',monospace;font-size:14px;color:var(--gold);font-weight:700}
+    .ans-count{margin-left:auto;color:var(--muted);font-size:12px;font-weight:700;flex-shrink:0}
+
+    /* reveal */
+    .reveal{position:fixed;inset:0;background:rgba(15,7,34,.96);z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:36px;animation:fadeIn .4s ease}
     @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-    .reveal-word { font-family:'Black Han Sans',sans-serif; font-size:clamp(40px,8vw,80px); animation:bounceIn .5s ease; }
-    .reveal-word.correct-w { color:var(--teal); }
-    .reveal-word.wrong-w   { color:var(--red); }
+    .reveal-word{font-family:'Black Han Sans',sans-serif;font-size:clamp(36px,7vw,72px);animation:bounceIn .5s ease}
+    .reveal-word.c{color:var(--teal)}
     @keyframes bounceIn{0%{transform:scale(0)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
-    .reveal-answer { font-size:clamp(18px,3vw,32px); font-weight:700; color:var(--gold); text-align:center; }
-    .reveal-scorers { display:flex; flex-direction:column; gap:10px; max-width:480px; width:100%; }
-    .reveal-row { background:var(--card); border-radius:14px; padding:12px 20px; display:flex; align-items:center; gap:12px; }
-    .rr-name{flex:1;font-weight:700;font-size:18px} .rr-pts{font-family:'Space Mono',monospace;color:var(--gold);font-size:20px;font-weight:700}
-    .reveal-next { color:var(--muted); font-size:15px; font-weight:600; }
+    .reveal-ans{font-size:clamp(16px,2.5vw,28px);font-weight:700;color:var(--gold);text-align:center}
+    .reveal-rows{display:flex;flex-direction:column;gap:9px;max-width:460px;width:100%}
+    .reveal-row{background:var(--card);border-radius:13px;padding:11px 18px;display:flex;align-items:center;gap:11px}
+    .rr-name{flex:1;font-weight:700;font-size:17px}
+    .rr-pts{font-family:'Space Mono',monospace;color:var(--gold);font-size:18px;font-weight:700}
 
-    /* ── TV: Final ── */
-    .tv-final { flex:1; padding:32px 40px; }
-    .podium { display:flex; align-items:flex-end; justify-content:center; gap:12px; height:200px; }
-    .podium-col { display:flex; flex-direction:column; align-items:center; gap:8px; flex:1; max-width:200px; }
-    .podium-bar { width:100%; border-radius:12px 12px 0 0; display:flex; align-items:center; justify-content:center; font-family:'Space Mono',monospace; font-size:18px; font-weight:700; color:#0F0722; }
-    .final-list { display:flex; flex-direction:column; gap:10px; width:100%; max-width:640px; }
-    .final-row  { background:var(--card); border-radius:16px; padding:16px 24px; display:flex; align-items:center; gap:16px; border:2px solid transparent; }
-    .final-row.top { border-color:var(--gold); }
-    .fr-rank{font-family:'Black Han Sans',sans-serif;font-size:22px;color:var(--muted);min-width:32px}
-    .fr-name{flex:1;font-weight:700;font-size:18px}
-    .fr-pts{font-family:'Space Mono',monospace;font-size:22px;color:var(--gold);font-weight:700}
+    /* TV final */
+    .tv-final{flex:1;padding:28px 36px}
+    .podium{display:flex;align-items:flex-end;justify-content:center;gap:10px;height:190px}
+    .podium-col{display:flex;flex-direction:column;align-items:center;gap:7px;flex:1;max-width:190px}
+    .podium-bar{width:100%;border-radius:10px 10px 0 0;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-size:17px;font-weight:700;color:#0F0722}
+    .final-list{display:flex;flex-direction:column;gap:9px;width:100%;max-width:620px}
+    .final-row{background:var(--card);border-radius:14px;padding:14px 22px;display:flex;align-items:center;gap:14px;border:2px solid transparent}
+    .final-row.top{border-color:var(--gold)}
+    .fr-rank{font-family:'Black Han Sans',sans-serif;font-size:20px;color:var(--muted);min-width:30px}
+    .fr-name{flex:1;font-weight:700;font-size:17px}
+    .fr-pts{font-family:'Space Mono',monospace;font-size:20px;color:var(--gold);font-weight:700}
 
-    /* ── Phone ── */
-    .phone { flex:1; display:flex; flex-direction:column; }
-    .phone-lobby   { flex:1; padding:24px 20px; }
-    .phone-waiting { flex:1; padding:32px 20px; }
-    .pulse { font-size:56px; animation:heartbeat 1.2s ease-in-out infinite alternate; }
+    /* phone */
+    .phone{flex:1;display:flex;flex-direction:column}
+    .phone-lobby{flex:1;padding:22px 18px}
+    .phone-waiting{flex:1;padding:28px 18px}
+    .pulse{font-size:52px;animation:heartbeat 1.2s ease-in-out infinite alternate}
     @keyframes heartbeat{from{transform:scale(1)}to{transform:scale(1.15)}}
-    .phone-game { flex:1; display:flex; flex-direction:column; overflow:hidden; }
-    .ph-topbar { background:var(--bg2); padding:10px 16px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--gold-dim); flex-shrink:0; }
-    .ph-timer  { font-family:'Space Mono',monospace; font-size:26px; font-weight:700; color:var(--gold); transition:color .3s; }
-    .ph-timer.urgent { color:var(--red); animation:blink .5s step-end infinite; }
-    .ph-cat    { flex:1; font-size:12px; font-weight:700; color:var(--muted); text-align:center; }
-    .ph-locked { font-size:12px; font-weight:700; color:var(--teal); }
-    .ph-question { padding:16px; background:var(--bg); font-size:clamp(15px,4vw,20px); font-weight:700; line-height:1.4; text-align:center; flex-shrink:0; }
-    .buzzers { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:14px; flex:1; }
-    .buzzer { background:var(--card); border:3px solid transparent; border-radius:18px; padding:14px 10px; color:var(--white); font-size:clamp(14px,4vw,18px); font-weight:700; cursor:pointer; transition:all .12s; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; min-height:90px; text-align:center; line-height:1.3; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
-    .buzzer:not(.locked):active { transform:scale(.93); }
-    .buzzer-lbl { font-family:'Space Mono',monospace; font-size:12px; opacity:.4; }
-    .buzzer.selected { border-color:var(--sky); background:rgba(76,201,240,.15); }
-    .buzzer.correct  { border-color:var(--teal); background:rgba(6,214,160,.2); }
-    .buzzer.wrong    { border-color:var(--red); background:rgba(230,57,70,.1); opacity:.55; }
-    .buzzer.locked   { cursor:default; }
-    .ph-scores-bar { background:var(--bg2); border-top:1px solid var(--gold-dim); padding:10px 14px; display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; flex-shrink:0; }
-    .ph-scores-bar::-webkit-scrollbar{display:none}
-    .ph-chip { display:flex; align-items:center; gap:5px; background:var(--bg); border-radius:8px; padding:5px 10px; flex-shrink:0; border:1px solid transparent; }
-    .ph-chip.me     { border-color:var(--gold); }
-    .ph-chip.buzzed { border-color:var(--teal); }
-    .ph-n{font-size:11px;font-weight:700} .ph-p{font-family:'Space Mono',monospace;font-size:13px;color:var(--gold);font-weight:700}
-    .ph-reveal { flex:1; padding:32px 20px; animation:fadeIn .3s ease; }
-    .ph-reveal-icon { font-size:80px; animation:bounceIn .5s ease; }
-    .ph-reveal-word { font-family:'Black Han Sans',sans-serif; font-size:44px; }
-    .ph-reveal-word.correct-c { color:var(--teal); }
-    .ph-reveal-word.wrong-c   { color:var(--red); }
-    .ph-final { flex:1; padding:24px 20px; }
-    .ph-final-list { display:flex; flex-direction:column; gap:8px; width:100%; max-width:360px; }
-    .ph-final-row { background:var(--card); border-radius:12px; padding:12px 16px; display:flex; align-items:center; gap:12px; border:2px solid transparent; }
-    .ph-final-row.me-row { border-color:var(--gold); }
-    .ph-fr-rank{font-size:18px;color:var(--muted);min-width:26px}
-    .ph-fr-name{flex:1;font-weight:700;font-size:15px}
-    .ph-fr-pts{font-family:'Space Mono',monospace;font-size:17px;color:var(--gold);font-weight:700}
-
-    .err-msg { color:var(--red); font-size:14px; font-weight:700; }
-    .hidden  { display:none !important; }
+    .phone-game{flex:1;display:flex;flex-direction:column;overflow:hidden}
+    .ph-top{background:var(--bg2);padding:9px 14px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--gdim);flex-shrink:0}
+    .ph-timer{font-family:'Space Mono',monospace;font-size:24px;font-weight:700;color:var(--gold);transition:color .3s}
+    .ph-timer.urgent{color:var(--red);animation:blink .5s step-end infinite}
+    .ph-cat{flex:1;font-size:11px;font-weight:700;color:var(--muted);text-align:center}
+    .ph-locked{font-size:11px;font-weight:700;color:var(--teal)}
+    .ph-q{padding:14px;background:var(--bg);font-size:clamp(14px,4vw,19px);font-weight:700;line-height:1.4;text-align:center;flex-shrink:0}
+    .buzzers{display:grid;grid-template-columns:1fr 1fr;gap:11px;padding:13px;flex:1}
+    .buzzer{background:var(--card);border:3px solid transparent;border-radius:17px;padding:13px 9px;color:var(--white);font-size:clamp(13px,4vw,17px);font-weight:700;cursor:pointer;transition:all .12s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:86px;text-align:center;line-height:1.3;-webkit-tap-highlight-color:transparent;user-select:none}
+    .buzzer:not(.locked):active{transform:scale(.92)}
+    .buzzer-lbl{font-family:'Space Mono',monospace;font-size:11px;opacity:.4}
+    .buzzer.selected{border-color:var(--sky);background:rgba(76,201,240,.15)}
+    .buzzer.correct{border-color:var(--teal);background:rgba(6,214,160,.2)}
+    .buzzer.wrong{border-color:var(--red);opacity:.5}
+    .buzzer.locked{cursor:default}
+    .ph-scores{background:var(--bg2);border-top:1px solid var(--gdim);padding:9px 13px;display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;flex-shrink:0}
+    .ph-scores::-webkit-scrollbar{display:none}
+    .ph-chip{display:flex;align-items:center;gap:4px;background:var(--bg);border-radius:7px;padding:4px 9px;flex-shrink:0;border:1px solid transparent}
+    .ph-chip.me{border-color:var(--gold)}
+    .ph-chip.buzzed{border-color:var(--teal)}
+    .ph-n{font-size:10px;font-weight:700}
+    .ph-p{font-family:'Space Mono',monospace;font-size:12px;color:var(--gold);font-weight:700}
+    .ph-reveal{flex:1;padding:28px 18px;animation:fadeIn .3s ease}
+    .ph-reveal-icon{font-size:76px;animation:bounceIn .5s ease}
+    .ph-reveal-word{font-family:'Black Han Sans',sans-serif;font-size:42px}
+    .ph-reveal-word.c{color:var(--teal)}
+    .ph-reveal-word.w{color:var(--red)}
+    .ph-final{flex:1;padding:22px 18px}
+    .ph-final-list{display:flex;flex-direction:column;gap:7px;width:100%;max-width:350px}
+    .ph-fr{background:var(--card);border-radius:11px;padding:11px 14px;display:flex;align-items:center;gap:11px;border:2px solid transparent}
+    .ph-fr.me{border-color:var(--gold)}
+    .ph-fr-rank{font-size:17px;color:var(--muted);min-width:24px}
+    .ph-fr-name{flex:1;font-weight:700;font-size:14px}
+    .ph-fr-pts{font-family:'Space Mono',monospace;font-size:16px;color:var(--gold);font-weight:700}
   </style>
 </head>
 <body>
 <div id="app">
   <div class="hdr">
     <div class="logo"><div class="vinyl"></div>AAPop<span>Trivia</span></div>
-    <button class="mode-btn" id="modeBtn">📱 Phone View</button>
+    <button id="modeBtn">📱 Phone View</button>
   </div>
-  <div id="main" style="flex:1;display:flex;flex-direction:column;"></div>
+  <div id="main">
+    <div id="loading"><div class="pulse">🎵</div><div>Loading...</div></div>
+  </div>
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-// ─── CONFIG — Pusher key injected from env at deploy time ─────────────────────
-// IMPORTANT: Replace PUSHER_KEY_PLACEHOLDER and PUSHER_CLUSTER_PLACEHOLDER
-// with your actual Pusher key and cluster before deploying,
-// OR use the Vercel build process (see README) to inject them automatically.
-const PUSHER_KEY     = "2cfe0a89a1a4100697ba";
-const PUSHER_CLUSTER = "us2";
+// ── State ──────────────────────────────────────────────────────────────────────
+var mode      = location.hash === "#tv" ? "tv" : "phone";
+var screen    = "home";
+var gs        = null;
+var myId      = null;
+var myPlayer  = null;
+var myAnswer  = null;
+var roomCode  = null;
+var prevPhase = null;
+var pusher    = null;
+var channel   = null;
+var tickTimer = null;
+var nextTimer = null;
+const LABELS  = ["A","B","C","D"];
 
-// ─── STATE ────────────────────────────────────────────────────────────────────
-let mode       = window.location.hash === "#tv" ? "tv" : "phone";
-let screen     = "home";
-let gs         = null;   // full game state from server
-let myId       = null;
-let myPlayer   = null;
-let myAnswer   = null;
-let roomCode   = null;
-let pusherSub  = null;
-let prevPhase  = null;
-
-// ─── PUSHER ───────────────────────────────────────────────────────────────────
-const pusherClient = new Pusher(PUSHER_KEY, {
-  cluster: PUSHER_CLUSTER,
-  enabledTransports: ["ws", "wss"],
-});
-
-// Log Pusher connection state changes for debugging
-pusherClient.connection.bind("state_change", ({ previous, current }) => {
-  console.log(`[Pusher] connection: ${previous} → ${current}`);
-});
-pusherClient.connection.bind("error", (err) => {
-  console.error("[Pusher] connection error:", err);
-});
-
-function subscribeToRoom(code) {
-  if (pusherSub) { pusherSub.unbind_all(); pusherClient.unsubscribe(`room-${code}`); }
-  pusherSub = pusherClient.subscribe(`room-${code}`);
-  pusherSub.bind("pusher:subscription_succeeded", () => {
-    console.log(`[Pusher] subscribed to room-${code}`);
+// ── Boot: fetch Pusher config then init ────────────────────────────────────────
+fetch("/api/config")
+  .then(r => r.json())
+  .then(cfg => {
+    var script = document.createElement("script");
+    script.src = "https://js.pusher.com/8.4/pusher.min.js";
+    script.onload = function() {
+      pusher = new Pusher(cfg.key, { cluster: cfg.cluster });
+      render();
+    };
+    script.onerror = function() {
+      document.getElementById("main").innerHTML =
+        '<div style="padding:32px;text-align:center;color:#E63946;font-weight:700">Could not load Pusher. Check your internet connection.</div>';
+    };
+    document.head.appendChild(script);
+  })
+  .catch(function(e) {
+    document.getElementById("main").innerHTML =
+      '<div style="padding:32px;text-align:center;color:#E63946;font-weight:700">Could not reach server: ' + e.message + '</div>';
   });
-  pusherSub.bind("pusher:subscription_error", (err) => {
-    console.error(`[Pusher] subscription error:`, err);
-  });
-  pusherSub.bind("state", ({ state }) => {
-    console.log(`[Pusher] received state update, phase=${state.phase}, players=${state.players.length}`);
-    handleStateUpdate(state);
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+function post(path, body) {
+  return fetch("/api/" + path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  }).then(function(r) { return r.json(); });
+}
+
+function sorted() {
+  if (!gs) return [];
+  return gs.players.slice().sort(function(a,b) {
+    return (gs.scores[b.id]||0) - (gs.scores[a.id]||0);
   });
 }
 
-// ─── TV LOBBY POLL FALLBACK ───────────────────────────────────────────────────
-// Pusher can occasionally miss events. Poll Redis directly every 3s
-// while in the lobby so the TV always sees new players.
-let lobbyPoll = null;
-
-function startLobbyPoll() {
-  stopLobbyPoll();
-  lobbyPoll = setInterval(async () => {
-    if (screen !== "lobby" || mode !== "tv" || !roomCode) { stopLobbyPoll(); return; }
-    try {
-      const res = await fetch(`/api/room?code=${roomCode}`);
-      const data = await res.json();
-      if (data.state) {
-        console.log(`[Poll] lobby state: ${data.state.players.length} players`);
-        gs = data.state;
-        render();
-      }
-    } catch (e) { console.warn("[Poll] lobby poll error", e); }
-  }, 3000);
+function subscribe(code) {
+  if (channel) { channel.unbind_all(); pusher.unsubscribe("room-" + channel.name.replace("room-","")); }
+  channel = pusher.subscribe("room-" + code);
+  channel.bind("state", function(data) {
+    handleState(data.state);
+  });
 }
 
-function stopLobbyPoll() {
-  clearInterval(lobbyPoll);
-  lobbyPoll = null;
-}
-
-function handleStateUpdate(state) {
-  const prev = prevPhase;
-  prevPhase  = state.phase;
+function handleState(state) {
+  var prev = prevPhase;
+  prevPhase = state.phase;
   gs = state;
-
   if (mode === "tv") {
-    if (state.phase === "lobby")                           { screen = "lobby"; }
-    if (state.phase === "question" && prev === "lobby")    { screen = "game"; startTicking(); }
-    if (state.phase === "question" && prev === "question") { /* tick already running */ }
-    if (state.phase === "final")   { screen = "final"; stopTicking(); }
-    render();
-    return;
+    if (state.phase === "lobby")                         { screen = "lobby"; }
+    if (state.phase === "question" && prev === "lobby")  { screen = "game"; startTick(); }
+    if (state.phase === "final")                         { screen = "final"; stopTick(); }
+  } else {
+    if (state.phase === "question" && prev !== "question") { myAnswer = null; screen = "game"; }
+    if (state.phase === "reveal"   && prev !== "reveal")   { screen = "reveal"; }
+    if (state.phase === "final")                           { screen = "final"; }
+    if (state.phase === "lobby"    && prev === "final")    { screen = "waiting"; myAnswer = null; }
   }
-
-  // Phone
-  if (state.phase === "question" && prev !== "question") { myAnswer = null; screen = "game"; }
-  if (state.phase === "reveal"   && prev !== "reveal")   { screen = "reveal"; }
-  if (state.phase === "final")   { screen = "final"; }
-  if (state.phase === "lobby"    && prev === "final")     { screen = "waiting"; myAnswer = null; }
   render();
 }
 
-// ─── API CALLS ────────────────────────────────────────────────────────────────
-async function api(path, body) {
-  const res = await fetch(`/api/${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  return res.json();
-}
-
-// ─── BROWSER TIMER (TV only) ──────────────────────────────────────────────────
-// The TV drives the countdown by calling /api/tick every second.
-// This avoids Vercel killing server-side setTimeout on function return.
-let tickInterval  = null;
-let revealTimeout = null;
-
-function startTicking() {
-  stopTicking();
-  console.log("[ticker] started for room", roomCode);
-  tickInterval = setInterval(() => {
-    if (!roomCode || mode !== "tv") { stopTicking(); return; }
-    doTick();
+// ── Ticker (TV only) ───────────────────────────────────────────────────────────
+function startTick() {
+  stopTick();
+  tickTimer = setInterval(function() {
+    post("tick", { code: roomCode }).then(function(data) {
+      if (data.phase === "reveal") {
+        stopTick();
+        nextTimer = setTimeout(function() {
+          post("next", { code: roomCode });
+        }, 5000);
+      }
+    });
   }, 1000);
 }
 
-function stopTicking() {
-  clearInterval(tickInterval);
-  clearTimeout(revealTimeout);
-  tickInterval  = null;
-  revealTimeout = null;
+function stopTick() {
+  clearInterval(tickTimer);
+  clearTimeout(nextTimer);
+  tickTimer = null;
+  nextTimer = null;
 }
 
-// ─── ACTIONS ─────────────────────────────────────────────────────────────────
-async function createRoom(numQ, timePerQ) {
-  const data = await api("create", { numQ, timePerQ });
-  roomCode = data.code;
-  gs = data.state;
-  subscribeToRoom(roomCode);
-  screen = "lobby";
-  startLobbyPoll();
-  render();
-}
-
-async function joinRoom(code, name) {
-  const data = await api("join", { code, name });
-  if (data.error) { showErr(data.error); return; }
-  myId     = data.player.id;
-  myPlayer = data.player;
-  roomCode = code.toUpperCase();
-  gs       = data.state;
-  subscribeToRoom(roomCode);
-  screen = "waiting";
-  render();
-}
-
-async function startGame() {
-  console.log("[startGame] called, roomCode=", roomCode, "players=", gs?.players?.length);
-  try {
-    stopLobbyPoll();
-    const res = await fetch("/api/start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: roomCode }),
+// ── Lobby poll (TV only, fallback) ─────────────────────────────────────────────
+var lobbyTimer = null;
+function startLobbyPoll() {
+  stopLobbyPoll();
+  lobbyTimer = setInterval(function() {
+    if (screen !== "lobby" || !roomCode) { stopLobbyPoll(); return; }
+    fetch("/api/config").then(function() {
+      return fetch("/api/create"); // just a ping — real poll below
     });
-    const text = await res.text();
-    console.log("[startGame] raw response:", res.status, text);
-    const data = JSON.parse(text);
-    if (data.error) {
-      alert("Start error: " + data.error);
-      startLobbyPoll();
-      return;
-    }
-    console.log("[startGame] success, starting ticker");
-    startTicking();
-  } catch (e) {
-    console.error("[startGame] exception:", e);
-    alert("Start failed: " + e.message);
-  }
+    post("tick", { code: roomCode }); // harmless in lobby phase
+    // Directly read room state
+    fetch("/api/room?code=" + roomCode)
+      .then(function(r) { return r.json(); })
+      .then(function(d) { if (d.state) { gs = d.state; render(); } })
+      .catch(function(){});
+  }, 3000);
 }
-window.startGame = startGame;
+function stopLobbyPoll() { clearInterval(lobbyTimer); lobbyTimer = null; }
 
-async function doTick() {
-  try {
-    const res  = await fetch("/api/tick", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: roomCode }),
-    });
-    const data = await res.json();
-    console.log("[tick] response:", data.phase, "timeLeft:", data.timeLeft);
-    if (data.phase === "reveal") {
-      stopTicking();
-      revealTimeout = setTimeout(async () => {
-        console.log("[tick] advancing to next question");
-        await fetch("/api/next", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code: roomCode }),
-        });
-      }, 5000);
-    }
-  } catch (e) {
-    console.error("[tick] error:", e);
-  }
+// ── Actions ────────────────────────────────────────────────────────────────────
+function createRoom() {
+  var numQ     = +document.getElementById("numQ").value;
+  var timePerQ = +document.getElementById("timePerQ").value;
+  post("create", { numQ: numQ, timePerQ: timePerQ }).then(function(data) {
+    roomCode = data.code;
+    gs = data.state;
+    subscribe(roomCode);
+    screen = "lobby";
+    startLobbyPoll();
+    render();
+  });
 }
 
-async function submitAnswer(idx) {
+function joinRoom() {
+  var name = document.getElementById("playerName").value.trim();
+  var code = document.getElementById("codeInput").value.trim().toUpperCase();
+  if (!name) { document.getElementById("errMsg").textContent = "Enter your name!"; return; }
+  if (code.length < 5) { document.getElementById("errMsg").textContent = "Enter the 5-letter code!"; return; }
+  post("join", { code: code, name: name }).then(function(data) {
+    if (data.error) { document.getElementById("errMsg").textContent = data.error; return; }
+    myId     = data.player.id;
+    myPlayer = data.player;
+    roomCode = code;
+    gs       = data.state;
+    subscribe(roomCode);
+    screen = "waiting";
+    render();
+  });
+}
+
+function startGame() {
+  stopLobbyPoll();
+  post("start", { code: roomCode }).then(function(data) {
+    if (data.error) { alert(data.error); startLobbyPoll(); return; }
+    startTick();
+  });
+}
+
+function submitAnswer(idx) {
   if (myAnswer !== null) return;
   if (navigator.vibrate) navigator.vibrate(50);
   myAnswer = idx;
   render();
-  await api("answer", { code: roomCode, playerId: myId, answerIndex: idx });
+  post("answer", { code: roomCode, playerId: myId, answerIndex: idx });
 }
 
-async function rematch() {
-  stopTicking();
-  const data = await api("rematch", { code: roomCode });
-  gs = data.state;
-  prevPhase = "lobby";
-  screen = "lobby";
-  startLobbyPoll();
-  render();
+function doRematch() {
+  stopTick();
+  post("rematch", { code: roomCode }).then(function(data) {
+    gs = data.state;
+    prevPhase = "lobby";
+    screen = "lobby";
+    startLobbyPoll();
+    render();
+  });
 }
 
-// ─── RENDER ───────────────────────────────────────────────────────────────────
-const LABELS = ["A","B","C","D"];
-const main   = document.getElementById("main");
-const modeBtn = document.getElementById("modeBtn");
-
-function sortedPlayers() {
-  if (!gs) return [];
-  return [...gs.players].sort((a,b) => (gs.scores[b.id]||0) - (gs.scores[a.id]||0));
-}
-
-function showErr(msg) {
-  const el = document.getElementById("errMsg");
-  if (el) { el.textContent = msg; el.classList.remove("hidden"); }
-}
-
-function render() {
-  modeBtn.textContent = mode === "tv" ? "📱 Phone View" : "📺 TV View";
-  mode === "tv" ? renderTV() : renderPhone();
-}
-
-// ── TV SCREENS ────────────────────────────────────────────────────────────────
-function renderTV() {
-  if (screen === "home")   { main.innerHTML = tvHome();   attachTVHome();   return; }
-  if (screen === "lobby")  { main.innerHTML = tvLobby();  return; }
-  if (screen === "game")   { main.innerHTML = tvGame();   return; }
-  if (screen === "final")  { main.innerHTML = tvFinal();  attachTVFinal();  return; }
-}
-
-function tvHome() {
-  return `
-  <div class="tv-lobby col center g32">
-    <div class="tc">
-      <div class="hero">African American<br>Pop Culture Trivia</div>
-      <div class="tagline">Up to 8 players · Music · TV · Sports · Culture · Fashion</div>
-    </div>
-    <div class="card mw460 col g12">
-      <div class="card-title">📺 Host on this screen</div>
-      <div class="grid2">
-        <div class="col g4">
-          <div class="label">ROUNDS</div>
-          <select class="select" id="numQ">
-            <option value="5">5 questions</option>
-            <option value="10" selected>10 questions</option>
-            <option value="15">15 questions</option>
-            <option value="20">20 questions</option>
-          </select>
-        </div>
-        <div class="col g4">
-          <div class="label">SECONDS / Q</div>
-          <select class="select" id="timePerQ">
-            <option value="10">10s</option>
-            <option value="15">15s</option>
-            <option value="20" selected>20s</option>
-            <option value="30">30s</option>
-            <option value="45">45s</option>
-          </select>
-        </div>
-      </div>
-      <button class="btn btn-gold btn-full btn-xl" data-action="create">🎮 Create Room</button>
-      <div class="info tc">Players open this URL on their phones, then tap <strong class="gold">📱 Phone View</strong></div>
-    </div>
-  </div>`;
-}
-
-function attachTVHome() { /* handled by event delegation */ }
-
-function tvLobby() {
-  const players = gs?.players || [];
-  const slots = Array.from({length:8}, (_,i) => {
-    const p = players[i];
-    return p
-      ? `<div class="player-card filled"><div class="pc-emoji">${p.emoji}</div><div class="pc-name">${p.name}</div><div class="pc-score">0 pts</div></div>`
-      : `<div class="player-card empty"><div class="pc-emoji">+</div><div class="pc-name">Waiting...</div></div>`;
-  }).join("");
-
-  return `
-  <div class="tv-lobby col center g28">
-    <div class="tc">
-      <div class="code-label">OPEN THIS URL ON YOUR PHONE · TAP PHONE VIEW · ENTER CODE</div>
-      <div class="big-code">${roomCode}</div>
-    </div>
-    <div class="players-grid mw860">${slots}</div>
-    <div class="row">
-      <div class="info">${players.length} player${players.length!==1?"s":""} joined</div>
-      <button class="btn btn-gold btn-xl" data-action="start" ${players.length===0?"disabled":""}>🔥 Start Game (${gs?.questions?.length||10} Qs)</button>
-    </div>
-  </div>`;
-}
-
-function tvGame() {
-  const q = gs?.questions?.[gs?.currentQ];
-  if (!q) return "";
-  const inReveal = gs.phase === "reveal";
-  const choices  = q.choices.map((c,i) => {
-    let cls = "tv-choice";
-    if (inReveal) cls += i===q.a ? " correct" : " wrong";
-    return `<div class="${cls}"><div class="tv-choice-lbl">${LABELS[i]}</div>${c}</div>`;
-  }).join("");
-  const chips = sortedPlayers().map(p => {
-    let cls = "tv-chip";
-    if (gs.answers[p.id]!==undefined) cls += " buzzed";
-    if (gs.correctAnswerers?.includes(p.id)) cls += " scored";
-    return `<div class="${cls}"><span class="tc-emoji">${p.emoji}</span><span class="tc-name">${p.name}</span><span class="tc-pts">${gs.scores[p.id]||0}</span></div>`;
-  }).join("");
-  const scorersHTML = inReveal && gs.correctAnswerers?.length
-    ? `<div class="reveal-scorers"><div class="info tc" style="margin-bottom:4px">✨ Scored this round</div>${
-        gs.correctAnswerers.map(pid=>{const p=gs.players.find(x=>x.id===pid);return p?`<div class="reveal-row"><span style="font-size:24px">${p.emoji}</span><span class="rr-name">${p.name}</span><span class="rr-pts">+${q.pts}</span></div>`:"";}).join("")
-      }</div>` : "";
-  const revealOverlay = inReveal ? `
-    <div class="reveal-overlay col center g20">
-      <div class="reveal-word correct-w">CORRECT ANSWER</div>
-      <div class="reveal-answer">${q.choices[q.a]}</div>
-      ${scorersHTML}
-      <div class="reveal-next">Next question in a moment...</div>
-    </div>` : "";
-
-  return `
-  <div class="tv-game">
-    <div class="tv-topbar">
-      <div class="round-badge">Q ${gs.currentQ+1} / ${gs.questions.length}</div>
-      <div class="tv-cat">${q.cat}</div>
-      <div class="tv-timer${gs.timeLeft<=5?" urgent":""}">${gs.timeLeft}</div>
-    </div>
-    <div class="prog-bar"><div class="prog-fill" style="width:${(gs.timeLeft/gs.timePerQ)*100}%"></div></div>
-    <div class="tv-qbody col center g14">
-      <div class="pts-badge">+${q.pts} pts</div>
-      <div class="tv-question">${q.q}</div>
-    </div>
-    <div class="tv-choices">${choices}</div>
-    <div class="tv-scores-bar">${chips}<div class="ans-count">${Object.keys(gs.answers||{}).length}/${gs.players.length} answered</div></div>
-    ${revealOverlay}
-  </div>`;
-}
-
-function tvFinal() {
-  const sp = sortedPlayers();
-  const podium = `
-  <div class="podium">
-    ${sp[1]?`<div class="podium-col"><div style="font-size:28px">${sp[1].emoji}</div><div style="font-size:13px;font-weight:700">${sp[1].name}</div><div class="podium-bar" style="height:110px;background:#C0C0C0">${gs.scores[sp[1].id]||0}</div></div>`:""}
-    ${sp[0]?`<div class="podium-col"><div style="font-size:36px">👑</div><div style="font-size:15px;font-weight:700">${sp[0].name}</div><div class="podium-bar" style="height:160px;background:#FFD700">${gs.scores[sp[0].id]||0}</div></div>`:""}
-    ${sp[2]?`<div class="podium-col"><div style="font-size:22px">${sp[2].emoji}</div><div style="font-size:12px;font-weight:700">${sp[2].name}</div><div class="podium-bar" style="height:80px;background:#CD7F32">${gs.scores[sp[2].id]||0}</div></div>`:""}
-  </div>`;
-  const rows = sp.map((p,i)=>`
-  <div class="final-row${i===0?" top":""}">
-    <div class="fr-rank">${i===0?"👑":"#"+(i+1)}</div>
-    <div style="font-size:24px">${p.emoji}</div>
-    <div class="fr-name">${p.name}</div>
-    <div class="fr-pts">${gs.scores[p.id]||0} pts</div>
-  </div>`).join("");
-
-  return `
-  <div class="tv-final col center g28">
-    <div class="display gold" style="font-size:clamp(36px,6vw,64px)">Game Over! 🏆</div>
-    ${podium}
-    <div class="final-list">${rows}</div>
-    <div class="row g16">
-      <button class="btn btn-gold btn-xl" data-action="rematch">🔄 Play Again</button>
-      <button class="btn btn-outline" data-action="tv-reset">🏠 Home</button>
-    </div>
-  </div>`;
-}
-
-function attachTVFinal() {}
-
-// ── PHONE SCREENS ─────────────────────────────────────────────────────────────
-function renderPhone() {
-  if (screen === "home")    { main.innerHTML = phoneHome();    attachPhoneHome();    return; }
-  if (screen === "waiting") { main.innerHTML = phoneWaiting(); return; }
-  if (screen === "game")    { main.innerHTML = phoneGame();    attachPhoneGame();    return; }
-  if (screen === "reveal")  { main.innerHTML = phoneReveal();  return; }
-  if (screen === "final")   { main.innerHTML = phoneFinal();   attachPhoneFinal();   return; }
-}
-
-function phoneHome() {
-  return `
-  <div class="phone-lobby col center g24">
-    <div class="hero tc" style="font-size:clamp(28px,8vw,44px)">AAPop<br>Trivia</div>
-    <div class="card mw460 col g12">
-      <div class="card-title">🔗 Join a Game</div>
-      <div class="col g4">
-        <div class="label">YOUR NAME</div>
-        <input class="inp" id="playerName" placeholder="Enter your name" maxlength="20" />
-      </div>
-      <div class="col g4">
-        <div class="label">ROOM CODE (from the TV)</div>
-        <input class="inp inp-code" id="codeInput" placeholder="XXXXX" maxlength="5" />
-      </div>
-      <div class="err-msg hidden" id="errMsg"></div>
-      <button class="btn btn-gold btn-full" data-action="join">Join Game 🔥</button>
-      <div class="info tc">Get the 5-letter code from the host's TV screen</div>
-    </div>
-    <div class="divider">— OR —</div>
-    <button class="btn btn-ghost btn-sm" data-action="switch-tv">📺 Switch to TV / Host View</button>
-  </div>`;
-}
-
-function attachPhoneHome() {
-  document.getElementById("codeInput").oninput = e => {
-    e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,5);
-  };
-  document.getElementById("joinBtn").onclick = () => {
-    const name = document.getElementById("playerName").value.trim();
-function attachPhoneHome() { /* handled by event delegation */ }
-function attachPhoneGame() { /* handled by event delegation */ }
-
-function phoneWaiting() {
-  return `
-  <div class="phone-waiting col center g16 tc">
-    <div class="pulse">🎵</div>
-    <div class="display" style="font-size:28px">You're in!</div>
-    ${myPlayer?`<div style="font-size:40px">${myPlayer.emoji}</div><div style="font-size:20px;font-weight:700">${myPlayer.name}</div>`:""}
-    <div class="info">Waiting for the host to start...</div>
-    <div class="info" style="font-size:12px">Players in lobby: <span class="mono gold">${gs?.players?.length||1}</span></div>
-  </div>`;
-}
-
-function phoneGame() {
-  const q = gs?.questions?.[gs?.currentQ];
-  if (!q) return "";
-  const locked = myAnswer !== null;
-  const buttons = q.choices.map((c,i)=>{
-    let cls="buzzer";
-    if (myAnswer===i) cls+=" selected";
-    else if (locked) cls+=" locked";
-    return `<button class="${cls}" data-action="buzzer" data-val="${i}"><div class="buzzer-lbl">${LABELS[i]}</div>${c}</button>`;
-  }).join("");
-  const chips = sortedPlayers().map(p=>{
-    let cls="ph-chip";
-    if (p.id===myId) cls+=" me";
-    if (gs.answers[p.id]!==undefined) cls+=" buzzed";
-    return `<div class="${cls}"><span>${p.emoji}</span><span class="ph-n">${p.name.split(" ")[0]}</span><span class="ph-p">${gs.scores[p.id]||0}</span></div>`;
-  }).join("");
-  return `
-  <div class="phone-game">
-    <div class="ph-topbar">
-      <div class="ph-timer${gs.timeLeft<=5?" urgent":""}">${gs.timeLeft}s</div>
-      <div class="ph-cat">${q.cat} · Q${gs.currentQ+1}/${gs.questions.length}</div>
-      ${locked?`<div class="ph-locked">Locked ✓</div>`:""}
-    </div>
-    <div class="ph-question">${q.q}</div>
-    <div class="buzzers">${buttons}</div>
-    <div class="ph-scores-bar">${chips}</div>
-  </div>`;
-}
-
-
-
-function phoneReveal() {
-  const q = gs?.questions?.[gs?.currentQ];
-  if (!q) return "";
-  const correct = myAnswer !== null && myAnswer === q.a;
-  return `
-  <div class="ph-reveal col center g16 tc">
-    <div class="ph-reveal-icon">${correct?"✅":"❌"}</div>
-    <div class="ph-reveal-word ${correct?"correct-c":"wrong-c"}">${correct?"CORRECT!":"WRONG!"}</div>
-    <div style="font-size:18px;font-weight:700;color:var(--gold)">${q.choices[q.a]}</div>
-    <div class="info">Your score: <span class="mono gold">${gs.scores[myId]||0} pts</span></div>
-    <div class="info muted" style="font-size:12px">Next question coming up...</div>
-  </div>`;
-}
-
-function phoneFinal() {
-  const sp = sortedPlayers();
-  const rows = sp.map((p,i)=>`
-  <div class="ph-final-row${p.id===myId?" me-row":""}">
-    <div class="ph-fr-rank">${i===0?"👑":"#"+(i+1)}</div>
-    <span style="font-size:20px">${p.emoji}</span>
-    <div class="ph-fr-name">${p.name}${p.id===myId?" (you)":""}</div>
-    <div class="ph-fr-pts">${gs.scores[p.id]||0}</div>
-  </div>`).join("");
-
-  return `
-  <div class="ph-final col center g16">
-    <div style="font-size:56px">🏆</div>
-    <div class="display gold" style="font-size:32px">Game Over!</div>
-    <div class="ph-final-list">${rows}</div>
-    <button class="btn btn-outline" data-action="phone-reset" style="margin-top:8px">🏠 Home</button>
-  </div>`;
-}
-
-function attachPhoneFinal() {} // handler in phoneFinal()
-
-// ─── RESET HELPERS ────────────────────────────────────────────────────────────
-function tvReset() {
-  stopTicking();
+function resetTV() {
+  stopTick();
   stopLobbyPoll();
   screen = "home"; gs = null; roomCode = null; prevPhase = null;
   render();
 }
 
-function phoneReset() {
+function resetPhone() {
   screen = "home"; gs = null; myId = null; myPlayer = null;
   myAnswer = null; roomCode = null; prevPhase = null;
   render();
 }
 
-// ─── EVENT DELEGATION ─────────────────────────────────────────────────────────
-// Instead of inline onclick (which breaks with DOMContentLoaded scoping),
-// we catch all button clicks on the #main container and route by data-action.
-document.getElementById("main").addEventListener("click", async (e) => {
-  const btn = e.target.closest("[data-action]");
-  if (!btn) return;
-  const action = btn.dataset.action;
-  const val    = btn.dataset.val;
+// ── Render ─────────────────────────────────────────────────────────────────────
+var main = document.getElementById("main");
+var modeBtn = document.getElementById("modeBtn");
 
-  switch (action) {
-    case "create":      createRoom(+document.getElementById("numQ").value, +document.getElementById("timePerQ").value); break;
-    case "start":       startGame(); break;
-    case "rematch":     rematch(); break;
-    case "tv-reset":    tvReset(); break;
-    case "phone-reset": phoneReset(); break;
-    case "switch-tv":   window.location.hash = "tv"; mode = "tv"; screen = "home"; render(); break;
-    case "join":        joinRoom(document.getElementById("codeInput").value, document.getElementById("playerName").value); break;
-    case "buzzer":      submitAnswer(+val); break;
-  }
-});
-
-// ─── INIT ─────────────────────────────────────────────────────────────────────
-modeBtn.onclick = () => {
+modeBtn.onclick = function() {
   mode = mode === "tv" ? "phone" : "tv";
-  window.location.hash = mode === "tv" ? "tv" : "";
+  location.hash = mode === "tv" ? "tv" : "";
   screen = "home"; gs = null; myId = null; myPlayer = null;
   myAnswer = null; roomCode = null; prevPhase = null;
+  stopTick(); stopLobbyPoll();
   render();
 };
 
-window.addEventListener("hashchange", () => {
-  const newMode = window.location.hash === "#tv" ? "tv" : "phone";
-  if (newMode !== mode) { mode = newMode; screen="home"; gs=null; render(); }
+window.addEventListener("hashchange", function() {
+  var m = location.hash === "#tv" ? "tv" : "phone";
+  if (m !== mode) { mode = m; screen = "home"; gs = null; render(); }
 });
 
-render();
-}); // end DOMContentLoaded
+function render() {
+  modeBtn.textContent = mode === "tv" ? "📱 Phone View" : "📺 TV View";
+  if (mode === "tv") renderTV(); else renderPhone();
+}
+
+// ── TV Screens ─────────────────────────────────────────────────────────────────
+function renderTV() {
+  if (screen === "home")  { main.innerHTML = tvHome();  return; }
+  if (screen === "lobby") { main.innerHTML = tvLobby(); return; }
+  if (screen === "game")  { main.innerHTML = tvGame();  return; }
+  if (screen === "final") { main.innerHTML = tvFinal(); return; }
+}
+
+function tvHome() {
+  return '<div class="tv-lobby col center g32">' +
+    '<div class="tc"><div class="hero">African American<br>Pop Culture Trivia</div>' +
+    '<div class="tagline">Up to 8 players · Music · TV · Sports · Culture · Fashion</div></div>' +
+    '<div class="card mw460 col g12"><div class="card-title">📺 Host on this screen</div>' +
+    '<div class="grid2">' +
+    '<div class="col g4"><div class="label">ROUNDS</div>' +
+    '<select class="select" id="numQ">' +
+    '<option value="5">5 questions</option><option value="10" selected>10 questions</option>' +
+    '<option value="15">15 questions</option><option value="20">20 questions</option></select></div>' +
+    '<div class="col g4"><div class="label">SECONDS / Q</div>' +
+    '<select class="select" id="timePerQ">' +
+    '<option value="10">10s</option><option value="15">15s</option>' +
+    '<option value="20" selected>20s</option><option value="30">30s</option><option value="45">45s</option></select></div></div>' +
+    '<button class="btn btn-gold btn-full btn-xl" id="createBtn">🎮 Create Room</button>' +
+    '<div class="info tc">Players open this URL on their phones,<br>then tap <strong class="gold">📱 Phone View</strong></div>' +
+    '</div></div>';
+}
+
+function tvLobby() {
+  var players = gs ? gs.players : [];
+  var slots = "";
+  for (var i = 0; i < 8; i++) {
+    var p = players[i];
+    slots += p
+      ? '<div class="pc filled"><div class="pc-emoji">' + p.emoji + '</div><div class="pc-name">' + p.name + '</div><div class="pc-score">0 pts</div></div>'
+      : '<div class="pc empty"><div class="pc-emoji">+</div><div class="pc-name">Waiting...</div></div>';
+  }
+  var disabled = (!gs || gs.players.length === 0) ? " disabled" : "";
+  return '<div class="tv-lobby col center g28">' +
+    '<div class="tc"><div class="code-label">OPEN THIS URL ON PHONES · TAP PHONE VIEW · ENTER CODE</div>' +
+    '<div class="big-code">' + roomCode + '</div></div>' +
+    '<div class="players-grid mw860">' + slots + '</div>' +
+    '<div class="row"><div class="info">' + players.length + ' player' + (players.length!==1?'s':'') + ' joined</div>' +
+    '<button class="btn btn-gold btn-xl" id="startBtn"' + disabled + '>🔥 Start Game (' + (gs?gs.questions.length:10) + ' Qs)</button></div>' +
+    '</div>';
+}
+
+function tvGame() {
+  var q = gs && gs.questions && gs.questions[gs.currentQ];
+  if (!q) return "";
+  var inReveal = gs.phase === "reveal";
+  var choices = "";
+  for (var i = 0; i < q.choices.length; i++) {
+    var cls = "tv-choice" + (inReveal ? (i===q.a?" correct":" wrong") : "");
+    choices += '<div class="' + cls + '"><div class="tv-choice-lbl">' + LABELS[i] + '</div>' + q.choices[i] + '</div>';
+  }
+  var sp = sorted();
+  var chips = "";
+  for (var j = 0; j < sp.length; j++) {
+    var p = sp[j];
+    var cls2 = "tv-chip" + (gs.answers[p.id]!==undefined?" buzzed":"") + (gs.correctAnswerers&&gs.correctAnswerers.indexOf(p.id)>-1?" scored":"");
+    chips += '<div class="' + cls2 + '"><span>' + p.emoji + '</span><span style="font-size:12px;font-weight:700">' + p.name + '</span><span class="tc-pts">' + (gs.scores[p.id]||0) + '</span></div>';
+  }
+  var answered = gs.answers ? Object.keys(gs.answers).length : 0;
+  var overlay = "";
+  if (inReveal) {
+    var scorerRows = "";
+    if (gs.correctAnswerers && gs.correctAnswerers.length) {
+      for (var k = 0; k < gs.correctAnswerers.length; k++) {
+        var pid = gs.correctAnswerers[k];
+        var cp = null;
+        for (var l = 0; l < gs.players.length; l++) { if (gs.players[l].id===pid) { cp=gs.players[l]; break; } }
+        if (cp) scorerRows += '<div class="reveal-row"><span style="font-size:22px">' + cp.emoji + '</span><span class="rr-name">' + cp.name + '</span><span class="rr-pts">+' + q.pts + '</span></div>';
+      }
+    }
+    overlay = '<div class="reveal col center g18">' +
+      '<div class="reveal-word c">CORRECT ANSWER</div>' +
+      '<div class="reveal-ans">' + q.choices[q.a] + '</div>' +
+      (scorerRows ? '<div class="reveal-rows">' + scorerRows + '</div>' : '') +
+      '<div class="info">Next question in a moment...</div></div>';
+  }
+  return '<div class="tv-game">' +
+    '<div class="tv-top"><div class="round-badge">Q ' + (gs.currentQ+1) + ' / ' + gs.questions.length + '</div>' +
+    '<div class="tv-cat">' + q.cat + '</div>' +
+    '<div class="tv-timer' + (gs.timeLeft<=5?' urgent':'') + '">' + gs.timeLeft + '</div></div>' +
+    '<div class="prog"><div class="prog-fill" style="width:' + (gs.timeLeft/gs.timePerQ*100) + '%"></div></div>' +
+    '<div class="tv-qbody col center g12"><div class="pts-badge">+' + q.pts + ' pts</div><div class="tv-q">' + q.q + '</div></div>' +
+    '<div class="tv-choices">' + choices + '</div>' +
+    '<div class="tv-scores">' + chips + '<div class="ans-count">' + answered + '/' + gs.players.length + ' answered</div></div>' +
+    overlay + '</div>';
+}
+
+function tvFinal() {
+  var sp = sorted();
+  var podium = '<div class="podium">' +
+    (sp[1] ? '<div class="podium-col"><div style="font-size:26px">' + sp[1].emoji + '</div><div style="font-size:12px;font-weight:700">' + sp[1].name + '</div><div class="podium-bar" style="height:105px;background:#C0C0C0">' + (gs.scores[sp[1].id]||0) + '</div></div>' : '') +
+    (sp[0] ? '<div class="podium-col"><div style="font-size:34px">👑</div><div style="font-size:14px;font-weight:700">' + sp[0].name + '</div><div class="podium-bar" style="height:155px;background:#FFD700">' + (gs.scores[sp[0].id]||0) + '</div></div>' : '') +
+    (sp[2] ? '<div class="podium-col"><div style="font-size:21px">' + sp[2].emoji + '</div><div style="font-size:11px;font-weight:700">' + sp[2].name + '</div><div class="podium-bar" style="height:78px;background:#CD7F32">' + (gs.scores[sp[2].id]||0) + '</div></div>' : '') +
+    '</div>';
+  var rows = "";
+  for (var i = 0; i < sp.length; i++) {
+    var p = sp[i];
+    rows += '<div class="final-row' + (i===0?' top':'') + '"><div class="fr-rank">' + (i===0?'👑':'#'+(i+1)) + '</div><div style="font-size:22px">' + p.emoji + '</div><div class="fr-name">' + p.name + '</div><div class="fr-pts">' + (gs.scores[p.id]||0) + ' pts</div></div>';
+  }
+  return '<div class="tv-final col center g28">' +
+    '<div class="disp gold" style="font-size:clamp(32px,6vw,60px)">Game Over! 🏆</div>' +
+    podium +
+    '<div class="final-list">' + rows + '</div>' +
+    '<div class="row g16"><button class="btn btn-gold btn-xl" id="rematchBtn">🔄 Play Again</button>' +
+    '<button class="btn btn-outline" id="homeBtn">🏠 Home</button></div></div>';
+}
+
+// ── Phone Screens ──────────────────────────────────────────────────────────────
+function renderPhone() {
+  if (screen === "home")    { main.innerHTML = phoneHome();    return; }
+  if (screen === "waiting") { main.innerHTML = phoneWaiting(); return; }
+  if (screen === "game")    { main.innerHTML = phoneGame();    return; }
+  if (screen === "reveal")  { main.innerHTML = phoneReveal();  return; }
+  if (screen === "final")   { main.innerHTML = phoneFinal();   return; }
+}
+
+function phoneHome() {
+  return '<div class="phone-lobby col center g22">' +
+    '<div class="hero tc" style="font-size:clamp(26px,7vw,42px)">AAPop<br>Trivia</div>' +
+    '<div class="card mw460 col g12"><div class="card-title">🔗 Join a Game</div>' +
+    '<div class="col g4"><div class="label">YOUR NAME</div>' +
+    '<input class="inp" id="playerName" placeholder="Enter your name" maxlength="20" /></div>' +
+    '<div class="col g4"><div class="label">ROOM CODE (from the TV)</div>' +
+    '<input class="inp inp-code" id="codeInput" placeholder="XXXXX" maxlength="5" /></div>' +
+    '<div class="err" id="errMsg"></div>' +
+    '<button class="btn btn-gold btn-full" id="joinBtn">Join Game 🔥</button>' +
+    '<div class="info tc">Get the code from the TV screen</div></div>' +
+    '<button class="btn btn-ghost" style="font-size:14px;padding:10px 18px" id="switchBtn">📺 Switch to TV / Host View</button>' +
+    '</div>';
+}
+
+function phoneWaiting() {
+  return '<div class="phone-waiting col center g16 tc">' +
+    '<div class="pulse">🎵</div>' +
+    '<div class="disp" style="font-size:26px">You\'re in!</div>' +
+    (myPlayer ? '<div style="font-size:38px">' + myPlayer.emoji + '</div><div style="font-size:19px;font-weight:700">' + myPlayer.name + '</div>' : '') +
+    '<div class="info">Waiting for the host to start...</div>' +
+    '<div class="info" style="font-size:12px">Players in lobby: <span class="mono gold">' + (gs?gs.players.length:1) + '</span></div>' +
+    '</div>';
+}
+
+function phoneGame() {
+  var q = gs && gs.questions && gs.questions[gs.currentQ];
+  if (!q) return "";
+  var locked = myAnswer !== null;
+  var btns = "";
+  for (var i = 0; i < q.choices.length; i++) {
+    var cls = "buzzer" + (myAnswer===i?" selected":"") + (locked&&myAnswer!==i?" locked":"");
+    btns += '<button class="' + cls + '" data-idx="' + i + '"><div class="buzzer-lbl">' + LABELS[i] + '</div>' + q.choices[i] + '</button>';
+  }
+  var sp = sorted();
+  var chips = "";
+  for (var j = 0; j < sp.length; j++) {
+    var p = sp[j];
+    var cc = "ph-chip" + (p.id===myId?" me":"") + (gs.answers[p.id]!==undefined?" buzzed":"");
+    chips += '<div class="' + cc + '"><span>' + p.emoji + '</span><span class="ph-n">' + p.name.split(" ")[0] + '</span><span class="ph-p">' + (gs.scores[p.id]||0) + '</span></div>';
+  }
+  return '<div class="phone-game">' +
+    '<div class="ph-top"><div class="ph-timer' + (gs.timeLeft<=5?' urgent':'') + '">' + gs.timeLeft + 's</div>' +
+    '<div class="ph-cat">' + q.cat + ' · Q' + (gs.currentQ+1) + '/' + gs.questions.length + '</div>' +
+    (locked?'<div class="ph-locked">Locked ✓</div>':'') + '</div>' +
+    '<div class="ph-q">' + q.q + '</div>' +
+    '<div class="buzzers">' + btns + '</div>' +
+    '<div class="ph-scores">' + chips + '</div></div>';
+}
+
+function phoneReveal() {
+  var q = gs && gs.questions && gs.questions[gs.currentQ];
+  if (!q) return "";
+  var correct = myAnswer !== null && myAnswer === q.a;
+  return '<div class="ph-reveal col center g16 tc">' +
+    '<div class="ph-reveal-icon">' + (correct?'✅':'❌') + '</div>' +
+    '<div class="ph-reveal-word ' + (correct?'c':'w') + '">' + (correct?'CORRECT!':'WRONG!') + '</div>' +
+    '<div style="font-size:17px;font-weight:700;color:var(--gold)">' + q.choices[q.a] + '</div>' +
+    '<div class="info">Your score: <span class="mono gold">' + (gs.scores[myId]||0) + ' pts</span></div>' +
+    '<div class="info" style="font-size:12px">Next question coming up...</div></div>';
+}
+
+function phoneFinal() {
+  var sp = sorted();
+  var rows = "";
+  for (var i = 0; i < sp.length; i++) {
+    var p = sp[i];
+    rows += '<div class="ph-fr' + (p.id===myId?' me':'') + '">' +
+      '<div class="ph-fr-rank">' + (i===0?'👑':'#'+(i+1)) + '</div>' +
+      '<span style="font-size:19px">' + p.emoji + '</span>' +
+      '<div class="ph-fr-name">' + p.name + (p.id===myId?' (you)':'') + '</div>' +
+      '<div class="ph-fr-pts">' + (gs.scores[p.id]||0) + '</div></div>';
+  }
+  return '<div class="ph-final col center g16">' +
+    '<div style="font-size:52px">🏆</div>' +
+    '<div class="disp gold" style="font-size:30px">Game Over!</div>' +
+    '<div class="ph-final-list">' + rows + '</div>' +
+    '<button class="btn btn-outline" style="margin-top:8px" id="phHomeBtn">🏠 Home</button></div>';
+}
+
+// ── Event delegation ───────────────────────────────────────────────────────────
+main.addEventListener("click", function(e) {
+  var id = e.target.id || (e.target.parentElement && e.target.parentElement.id);
+
+  // TV
+  if (id === "createBtn") { createRoom(); return; }
+  if (id === "startBtn")  { startGame(); return; }
+  if (id === "rematchBtn"){ doRematch(); return; }
+  if (id === "homeBtn")   { resetTV(); return; }
+
+  // Phone
+  if (id === "joinBtn")   { joinRoom(); return; }
+  if (id === "switchBtn") { mode="tv"; location.hash="tv"; screen="home"; gs=null; render(); return; }
+  if (id === "phHomeBtn") { resetPhone(); return; }
+
+  // Buzzer
+  var buzzer = e.target.closest(".buzzer");
+  if (buzzer && !buzzer.classList.contains("locked")) {
+    submitAnswer(parseInt(buzzer.dataset.idx));
+  }
+});
+
+// auto-uppercase code input
+main.addEventListener("input", function(e) {
+  if (e.target.id === "codeInput") {
+    e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,5);
+  }
+});
 </script>
 </body>
 </html>
