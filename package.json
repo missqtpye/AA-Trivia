@@ -1,14 +1,7 @@
 {
   "name": "aa-trivia",
-  "version": "1.0.0",
-  "description": "African American Trivia",
-  "scripts": {
-    "dev": "vercel dev",
-    "build": "echo 'No build step needed'",
-    "start": "vercel dev"
-  },
+  "version": "2.0.0",
   "dependencies": {
-    "pusher": "^5.2.0",
-    "pusher-js": "^8.4.0"
+    "pusher": "^5.2.0"
   }
 }
