@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <meta name="theme-color" content="#0F0722" />
-  <title>AAPop Trivia</title>
+  <title>AA Trivia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Inter:wght@400;600;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
   <!-- Pusher must load before app script -->
@@ -475,19 +475,13 @@ function tvHome() {
           </select>
         </div>
       </div>
-      <button class="btn btn-gold btn-full btn-xl" id="createBtn">🎮 Create Room</button>
+      <button class="btn btn-gold btn-full btn-xl" data-action="create">🎮 Create Room</button>
       <div class="info tc">Players open this URL on their phones, then tap <strong class="gold">📱 Phone View</strong></div>
     </div>
   </div>`;
 }
 
-function attachTVHome() {
-  document.getElementById("createBtn").onclick = () => {
-    const numQ     = +document.getElementById("numQ").value;
-    const timePerQ = +document.getElementById("timePerQ").value;
-    createRoom(numQ, timePerQ);
-  };
-}
+function attachTVHome() { /* handled by event delegation */ }
 
 function tvLobby() {
   const players = gs?.players || [];
@@ -507,7 +501,7 @@ function tvLobby() {
     <div class="players-grid mw860">${slots}</div>
     <div class="row">
       <div class="info">${players.length} player${players.length!==1?"s":""} joined</div>
-      <button class="btn btn-gold btn-xl" onclick="startGame()" ${players.length===0?"disabled":""}>🔥 Start Game (${gs?.questions?.length||10} Qs)</button>
+      <button class="btn btn-gold btn-xl" data-action="start" ${players.length===0?"disabled":""}>🔥 Start Game (${gs?.questions?.length||10} Qs)</button>
     </div>
   </div>`;
 }
@@ -579,8 +573,8 @@ function tvFinal() {
     ${podium}
     <div class="final-list">${rows}</div>
     <div class="row g16">
-      <button class="btn btn-gold btn-xl" onclick="rematch()">🔄 Play Again</button>
-      <button class="btn btn-outline" onclick="tvReset()">🏠 Home</button>
+      <button class="btn btn-gold btn-xl" data-action="rematch">🔄 Play Again</button>
+      <button class="btn btn-outline" data-action="tv-reset">🏠 Home</button>
     </div>
   </div>`;
 }
@@ -611,11 +605,11 @@ function phoneHome() {
         <input class="inp inp-code" id="codeInput" placeholder="XXXXX" maxlength="5" />
       </div>
       <div class="err-msg hidden" id="errMsg"></div>
-      <button class="btn btn-gold btn-full" id="joinBtn">Join Game 🔥</button>
+      <button class="btn btn-gold btn-full" data-action="join">Join Game 🔥</button>
       <div class="info tc">Get the 5-letter code from the host's TV screen</div>
     </div>
     <div class="divider">— OR —</div>
-    <button class="btn btn-ghost btn-sm" id="switchTV">📺 Switch to TV / Host View</button>
+    <button class="btn btn-ghost btn-sm" data-action="switch-tv">📺 Switch to TV / Host View</button>
   </div>`;
 }
 
@@ -625,14 +619,8 @@ function attachPhoneHome() {
   };
   document.getElementById("joinBtn").onclick = () => {
     const name = document.getElementById("playerName").value.trim();
-    const code = document.getElementById("codeInput").value.trim();
-    joinRoom(code, name);
-  };
-  document.getElementById("switchTV").onclick = () => {
-    window.location.hash = "tv";
-    mode = "tv"; screen = "home"; render();
-  };
-}
+function attachPhoneHome() { /* handled by event delegation */ }
+function attachPhoneGame() { /* handled by event delegation */ }
 
 function phoneWaiting() {
   return `
@@ -653,7 +641,7 @@ function phoneGame() {
     let cls="buzzer";
     if (myAnswer===i) cls+=" selected";
     else if (locked) cls+=" locked";
-    return `<button class="${cls}" data-idx="${i}"><div class="buzzer-lbl">${LABELS[i]}</div>${c}</button>`;
+    return `<button class="${cls}" data-action="buzzer" data-val="${i}"><div class="buzzer-lbl">${LABELS[i]}</div>${c}</button>`;
   }).join("");
   const chips = sortedPlayers().map(p=>{
     let cls="ph-chip";
@@ -674,14 +662,7 @@ function phoneGame() {
   </div>`;
 }
 
-function attachPhoneGame() {
-  document.querySelectorAll(".buzzer").forEach(btn => {
-    btn.onclick = () => {
-      if (myAnswer !== null) return;
-      submitAnswer(+btn.dataset.idx);
-    };
-  });
-}
+
 
 function phoneReveal() {
   const q = gs?.questions?.[gs?.currentQ];
@@ -712,7 +693,7 @@ function phoneFinal() {
     <div style="font-size:56px">🏆</div>
     <div class="display gold" style="font-size:32px">Game Over!</div>
     <div class="ph-final-list">${rows}</div>
-    <button class="btn btn-outline" onclick="phoneReset()" style="margin-top:8px">🏠 Home</button>
+    <button class="btn btn-outline" data-action="phone-reset" style="margin-top:8px">🏠 Home</button>
   </div>`;
 }
 
@@ -732,11 +713,26 @@ function phoneReset() {
   render();
 }
 
-// Expose all functions used in inline onclick handlers to window scope
-window.startGame  = startGame;
-window.rematch    = rematch;
-window.tvReset    = tvReset;
-window.phoneReset = phoneReset;
+// ─── EVENT DELEGATION ─────────────────────────────────────────────────────────
+// Instead of inline onclick (which breaks with DOMContentLoaded scoping),
+// we catch all button clicks on the #main container and route by data-action.
+document.getElementById("main").addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-action]");
+  if (!btn) return;
+  const action = btn.dataset.action;
+  const val    = btn.dataset.val;
+
+  switch (action) {
+    case "create":      createRoom(+document.getElementById("numQ").value, +document.getElementById("timePerQ").value); break;
+    case "start":       startGame(); break;
+    case "rematch":     rematch(); break;
+    case "tv-reset":    tvReset(); break;
+    case "phone-reset": phoneReset(); break;
+    case "switch-tv":   window.location.hash = "tv"; mode = "tv"; screen = "home"; render(); break;
+    case "join":        joinRoom(document.getElementById("codeInput").value, document.getElementById("playerName").value); break;
+    case "buzzer":      submitAnswer(+val); break;
+  }
+});
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 modeBtn.onclick = () => {
