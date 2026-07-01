@@ -311,16 +311,10 @@ let revealTimeout = null;
 
 function startTicking() {
   stopTicking();
-  tickInterval = setInterval(async () => {
-    if (!roomCode || mode !== "tv") return;
-    const data = await api("tick", { code: roomCode });
-    if (data.phase === "reveal") {
-      stopTicking();
-      // After 5s reveal window, advance to next question
-      revealTimeout = setTimeout(async () => {
-        await api("next", { code: roomCode });
-      }, 5000);
-    }
+  console.log("[ticker] started for room", roomCode);
+  tickInterval = setInterval(() => {
+    if (!roomCode || mode !== "tv") { stopTicking(); return; }
+    doTick();
   }, 1000);
 }
 
@@ -379,6 +373,31 @@ async function startGame() {
   }
 }
 window.startGame = startGame;
+
+async function doTick() {
+  try {
+    const res  = await fetch("/api/tick", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: roomCode }),
+    });
+    const data = await res.json();
+    console.log("[tick] response:", data.phase, "timeLeft:", data.timeLeft);
+    if (data.phase === "reveal") {
+      stopTicking();
+      revealTimeout = setTimeout(async () => {
+        console.log("[tick] advancing to next question");
+        await fetch("/api/next", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: roomCode }),
+        });
+      }, 5000);
+    }
+  } catch (e) {
+    console.error("[tick] error:", e);
+  }
+}
 
 async function submitAnswer(idx) {
   if (myAnswer !== null) return;
